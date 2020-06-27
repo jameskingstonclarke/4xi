@@ -4,10 +4,17 @@ import (
 	"sync"
 )
 
+const (
+	CLIENT = 0x0
+	HOST   = 0x1
+)
+
 var (
 	Running = true
 	WaitGroup = sync.WaitGroup{}
 	LoopMutex = &sync.Mutex{}
+
+	Mode = HOST
 )
 
 func Run(){

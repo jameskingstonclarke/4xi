@@ -1,8 +1,8 @@
 package src
 
-import "github.com/nsf/termbox-go"
-
 type Logic struct {
+	Client *Client
+	Server *Server
 }
 
 var (
@@ -13,14 +13,30 @@ func (Logic *Logic) Process(){
 	for Running{
 		// lock the screen, and then process all logic
 		ScreenMutex.Lock()
-		ScreenInstance.Text("hello world", 5,1, termbox.AttrBold | termbox.ColorGreen, termbox.ColorWhite)
-		ScreenInstance.Rect('#', 1,1, 10,10, termbox.AttrBold | termbox.ColorGreen, 0, true)
+
+		s := &Settlement{
+			Empire:     nil,
+			Name:       "babylon",
+			Population: 1,
+			X:          10,
+			Y:          10,
+		}
+		s.Draw()
+
 		// finally release the screen for the game to render
 		ScreenMutex.Unlock()
 	}
 }
 
 func (Logic *Logic) Init(){
+	Logic.Client = &Client{GameState: nil}
+	// if we are hosting a server, setup the server
+	if Mode == HOST {
+		Logic.Server = &Server{
+			Players:   nil,
+			GameState: nil,
+		}
+	}
 }
 
 func (Logic *Logic) Close(){
