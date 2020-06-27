@@ -7,6 +7,7 @@ import (
 var (
 	Running = true
 	WaitGroup = sync.WaitGroup{}
+	LoopMutex = &sync.Mutex{}
 )
 
 func Run(){

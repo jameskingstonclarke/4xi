@@ -6,18 +6,19 @@ import (
 )
 
 const (
-	DEFAULT_WIDTH = 100
-	DEFAULT_HEIGHT = 50
+	DEFAULT_WIDTH = 200
+	DEFAULT_HEIGHT = 100
 )
 
 type Screen struct {
 	Width, Height int
 	CellBuffer [][]termbox.Cell
+
 }
 
 var (
 	ScreenInstance = &Screen{}
-	Mutex = &sync.Mutex{}
+	ScreenMutex = &sync.Mutex{}
 )
 
 func (Screen *Screen) Init(){
@@ -32,16 +33,13 @@ func (Screen *Screen) Init(){
 }
 
 func (Screen *Screen) Resize(){
-	Mutex.Lock()
 	Screen.CellBuffer = make([][]termbox.Cell, Screen.Width)
 	for i := range Screen.CellBuffer {
 		Screen.CellBuffer[i] = make([]termbox.Cell, Screen.Height)
 	}
-	Mutex.Unlock()
 }
 
 func (Screen *Screen) Text(text string, x, y int, fg, bg termbox.Attribute){
-	Mutex.Lock()
 	for i, r := range text {
 		if x+i >= Screen.Width {
 			x=0
@@ -51,19 +49,35 @@ func (Screen *Screen) Text(text string, x, y int, fg, bg termbox.Attribute){
 		Screen.CellBuffer[x+i][y].Fg = fg
 		Screen.CellBuffer[x+i][y].Bg = bg
 	}
-	Mutex.Unlock()
 }
 
-func (Screen *Screen) Put(r rune, x, y int, fg, bg termbox.Attribute){
-	Mutex.Lock()
+func (Screen *Screen) Char(r rune, x, y int, fg, bg termbox.Attribute){
 	Screen.CellBuffer[x][y].Ch = r
 	Screen.CellBuffer[x][y].Fg = fg
 	Screen.CellBuffer[x][y].Bg = bg
-	Mutex.Unlock()
+}
+
+func (Screen *Screen) Rect(r rune, x, y, width, height int, fg, bg termbox.Attribute, fill bool){
+	for xTmp:=x; xTmp<x+width; xTmp++ {
+		for yTmp:=y; yTmp<y+height; yTmp++ {
+			if fill {
+				Screen.CellBuffer[xTmp][yTmp].Ch = r
+				Screen.CellBuffer[xTmp][yTmp].Fg = fg
+				Screen.CellBuffer[xTmp][yTmp].Bg = bg
+			}else{
+				if (xTmp==x || xTmp==x+width-1) || (yTmp==y || yTmp==y+height-1) {
+					Screen.CellBuffer[xTmp][yTmp].Ch = r
+					Screen.CellBuffer[xTmp][yTmp].Fg = fg
+					Screen.CellBuffer[xTmp][yTmp].Bg = bg
+				}
+			}
+		}
+	}
 }
 
 func (Screen *Screen) Draw(){
 	for Running {
+		ScreenMutex.Lock()
 		termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 		for y := 0; y < Screen.Height; y++ {
 			for x := 0; x < Screen.Width; x++ {
@@ -72,6 +86,7 @@ func (Screen *Screen) Draw(){
 			}
 		}
 		termbox.Flush()
+		ScreenMutex.Unlock()
 	}
 }
 
@@ -84,12 +99,12 @@ func (Screen *Screen) Poll() {
 			case termbox.KeyEsc:
 				Running = false
 			case termbox.KeyF1:
-				Screen.Put('k', ev.MouseX, ev.MouseY, termbox.ColorGreen, termbox.AttrBold)
+				Screen.Char('k', ev.MouseX, ev.MouseY, termbox.ColorGreen, termbox.AttrBold)
 			default:
 				break
 			}
 		case termbox.EventMouse:
-			Screen.Put('m', ev.MouseX, ev.MouseY, 0, 0)
+			Screen.Char('m', ev.MouseX, ev.MouseY, 0, 0)
 			break
 		case termbox.EventResize:
 			Screen.Width = ev.Width
