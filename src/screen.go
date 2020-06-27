@@ -2,6 +2,7 @@ package src
 
 import (
 	"github.com/nsf/termbox-go"
+	"sync"
 )
 
 const (
@@ -15,7 +16,8 @@ type Screen struct {
 }
 
 var (
-	ScreenInstance *Screen
+	ScreenInstance = &Screen{}
+	Mutex = &sync.Mutex{}
 )
 
 func (Screen *Screen) Init(){
@@ -30,16 +32,34 @@ func (Screen *Screen) Init(){
 }
 
 func (Screen *Screen) Resize(){
+	Mutex.Lock()
 	Screen.CellBuffer = make([][]termbox.Cell, Screen.Width)
 	for i := range Screen.CellBuffer {
 		Screen.CellBuffer[i] = make([]termbox.Cell, Screen.Height)
 	}
+	Mutex.Unlock()
 }
 
-func (Screen *Screen) Put(r rune, x, y int, bg, fg termbox.Attribute){
+func (Screen *Screen) Text(text string, x, y int, fg, bg termbox.Attribute){
+	Mutex.Lock()
+	for i, r := range text {
+		if x+i >= Screen.Width {
+			x=0
+			y++
+		}
+		Screen.CellBuffer[x+i][y].Ch = r
+		Screen.CellBuffer[x+i][y].Fg = fg
+		Screen.CellBuffer[x+i][y].Bg = bg
+	}
+	Mutex.Unlock()
+}
+
+func (Screen *Screen) Put(r rune, x, y int, fg, bg termbox.Attribute){
+	Mutex.Lock()
 	Screen.CellBuffer[x][y].Ch = r
 	Screen.CellBuffer[x][y].Fg = fg
 	Screen.CellBuffer[x][y].Bg = bg
+	Mutex.Unlock()
 }
 
 func (Screen *Screen) Draw(){
