@@ -26,21 +26,12 @@ func NewSettlement(empire *Empire, name string, pos Vec) *Settlement{
 		NameLabel:  nil,
 		Window:     nil,
 	}
-	s.Window = &Window{
-		UITemplate: UITemplate{Enabled: false},
-		Title: name,
-		Pos:  V2(10,10),
-		Size: V2(20,20),
-	}
-	s.NameLabel = &Text{
-		UITemplate: UITemplate{Enabled: true},
-		T:        s.Name,
-		Pos:      s.Pos.Sub(V2(len(s.Name)/2, 1)),
-		Callback: func() {
-			s.Window.Enable(true)
-		},
-		Style: tcell.StyleDefault.Background(tcell.ColorBlue),
-	}
+
+	s.Window = NewWindow(false, name, V2(10,10), V2(20,20), SCREEN_VIEW)
+	s.NameLabel = NewText(true, s.Name, s.Pos.Sub(V2(len(s.Name)/2, 1)), func() {
+		s.Window.Enable(true)
+	}, tcell.StyleDefault.Background(tcell.ColorBlue), WORLD_VIEW)
+
 	return s
 }
 
@@ -52,7 +43,7 @@ func (Settlement *Settlement) Update(){
 
 func (Settlement *Settlement) Draw(){
 	// draw the settlement symbol
-	ScreenInstance.Char('▴', Settlement.Pos, tcell.StyleDefault.Foreground(tcell.ColorGreen))
+	ScreenInstance.Char('▴', Settlement.Pos, tcell.StyleDefault.Foreground(tcell.ColorGreen), WORLD_VIEW)
 	// draw the name label
 	Settlement.NameLabel.Draw()
 	Settlement.Window.Draw()

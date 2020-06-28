@@ -12,4 +12,5 @@ type Player struct {
 // represents the state of the game, shared by the client & the server
 type GameState struct {
 	Turn int
+	Entities []Entity
 }

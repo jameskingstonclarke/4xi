@@ -9,7 +9,6 @@ import (
 type Client struct {
 	GameState  *GameState
 	Connection net.Conn
-	Entities   []Entity
 }
 
 func (Client *Client) Init(){
@@ -19,14 +18,30 @@ func (Client *Client) Init(){
 	//}
 	//Client.Connection = conn
 
+	Client.GameState = &GameState{
+		Turn:     0,
+		Entities: nil,
+	}
 
-
-	Client.Entities = append(Client.Entities,NewSettlement(nil, "babylon", V2(10,10)))
+	Client.GameState.Entities = append(Client.GameState.Entities, NewWorld(250,100,123))
+	Client.GameState.Entities = append(Client.GameState.Entities,NewSettlement(nil, "babylon", V2(10,10)))
 }
 
 // process all updatable entities
 func (Client *Client) Process(){
-	for _, entity := range Client.Entities{
+
+	// process camera movement
+	if ScreenInstance.InputBuffer.KeyPressed == 'a'{
+		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(1,0))
+	}else if ScreenInstance.InputBuffer.KeyPressed == 'd'{
+		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(-1,0))
+	}else if ScreenInstance.InputBuffer.KeyPressed == 'w'{
+		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(0,1))
+	}else if ScreenInstance.InputBuffer.KeyPressed == 's'{
+		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(0,-1))
+	}
+
+	for _, entity := range Client.GameState.Entities{
 		entity.Update()
 		entity.Draw()
 	}

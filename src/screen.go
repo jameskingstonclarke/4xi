@@ -7,14 +7,19 @@ import (
 )
 
 const (
-	DEFAULT_WIDTH = 200
+	DEFAULT_WIDTH  = 200
 	DEFAULT_HEIGHT = 100
+
+	WORLD_VIEW     = 0x0
+	SCREEN_VIEW    = 0x1
 )
 
 type InputData struct {
-	MousePressed  tcell.ButtonMask
-	KeyPressed    tcell.Key
-	MousePos      Vec
+	MousePressed   tcell.ButtonMask
+	KeyPressed     rune
+	// used for special key presses e.g. ctrl + c
+	CtrlKeyPressed tcell.Key
+	MousePos       Vec
 }
 
 type Screen struct {
@@ -59,35 +64,36 @@ func (Screen *Screen) Resize(){
 }
 
 func (Screen *Screen) WorldToScreen(v Vec) Vec{
-	vNew := v
-	vNew.Add(Screen.Cam)
-	vNew.Add(Vec{X:Screen.Width/2, Y:Screen.Height/2})
-	return vNew
+	vNew := v.Add(Screen.Cam)
+	return vNew.Add(Vec{X:Screen.Width/2, Y:Screen.Height/2})
 }
 
 // TODO We may be able to just write the text directly
-func (Screen *Screen) Text(text string, pos Vec, style tcell.Style){
+func (Screen *Screen) Text(text string, pos Vec, style tcell.Style, view uint8){
 	for i, r := range text {
 		if pos.X+i >= Screen.Width {
 			pos.X=0
 			pos.Y++
 		}
-		Screen.Char(r, V2(pos.X+i, pos.Y), style)
+		Screen.Char(r, V2(pos.X+i, pos.Y), style, view)
 	}
 }
 
-func (Screen *Screen) Char(r rune, pos Vec, style tcell.Style){
+func (Screen *Screen) Char(r rune, pos Vec, style tcell.Style, view uint8){
+	if view == WORLD_VIEW{
+		pos = Screen.WorldToScreen(pos)
+	}
 	Screen.CellBuffer.SetContent(pos.X, pos.Y, r, nil, style)
 }
 
-func (Screen *Screen) Rect(r rune, pos Vec, width, height int, style tcell.Style, fill bool){
+func (Screen *Screen) Rect(r rune, pos Vec, width, height int, style tcell.Style, fill bool, view uint8){
 	for xTmp:=pos.X; xTmp<pos.Y+width; xTmp++ {
 		for yTmp:=pos.X; yTmp<pos.Y+height; yTmp++ {
 			if fill {
-				Screen.Char(r, V2(xTmp, yTmp), style)
+				Screen.Char(r, V2(xTmp, yTmp), style, view)
 			}else{
 				if (xTmp==pos.X || xTmp==pos.X+width-1) || (yTmp==pos.Y || yTmp==pos.Y+height-1) {
-					Screen.Char(r, V2(xTmp, yTmp), style)
+					Screen.Char(r, V2(xTmp, yTmp), style, view)
 				}
 			}
 		}
@@ -114,10 +120,13 @@ func (Screen *Screen) Poll() {
 		ev := Screen.Screen.PollEvent()
 		switch ev := ev.(type){
 		case *tcell.EventKey:
-			if ev.Key() == tcell.KeyEscape{
+			if ev.Key() == tcell.KeyRune{
+				ScreenInstance.InputBuffer.KeyPressed = ev.Rune()
+			}else if ev.Key() == tcell.KeyEscape{
 				os.Exit(2)
+			}else {
+				ScreenInstance.InputBuffer.CtrlKeyPressed = ev.Key()
 			}
-			ScreenInstance.InputBuffer.KeyPressed = ev.Key()
 			break
 		case *tcell.EventMouse:
 			ScreenInstance.InputBuffer.MousePressed = ev.Buttons()
