@@ -1,5 +1,9 @@
 package src
 
+const (
+	PORT = "7777"
+)
+
 // represents a player in the game
 type Player struct {
 	Name string

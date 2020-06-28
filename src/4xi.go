@@ -20,15 +20,14 @@ var (
 func Run(){
 
 	ScreenInstance.Init()
-
-	go ScreenInstance.Draw()
-	go ScreenInstance.Poll()
-
 	LogicInstance.Init()
 
+	// start the goroutine for the screen events
+	go ScreenInstance.Poll()
 	go LogicInstance.Process()
 
-	WaitGroup.Add(3)
+	// wait on the screen polling
+	WaitGroup.Add(2)
 	WaitGroup.Wait()
 
 	ScreenInstance.Close()

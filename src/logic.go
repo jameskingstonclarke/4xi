@@ -10,26 +10,15 @@ var (
 )
 
 func (Logic *Logic) Process(){
-	for Running{
-		// lock the screen, and then process all logic
-		ScreenMutex.Lock()
-
-		s := &Settlement{
-			Empire:     nil,
-			Name:       "babylon",
-			Population: 1,
-			X:          10,
-			Y:          10,
-		}
-		s.Draw()
-
-		// finally release the screen for the game to render
-		ScreenMutex.Unlock()
+	for Running {
+		Logic.Client.Process()
+		ScreenInstance.Draw()
 	}
 }
 
 func (Logic *Logic) Init(){
 	Logic.Client = &Client{GameState: nil}
+	Logic.Client.Init()
 	// if we are hosting a server, setup the server
 	if Mode == HOST {
 		Logic.Server = &Server{
@@ -40,5 +29,5 @@ func (Logic *Logic) Init(){
 }
 
 func (Logic *Logic) Close(){
-	WaitGroup.Done()
+	Logic.Client.Close()
 }

@@ -1,7 +1,8 @@
 package src
 
 import (
-	"github.com/nsf/termbox-go"
+	"github.com/gdamore/tcell"
+	"os"
 	"sync"
 )
 
@@ -10,10 +11,18 @@ const (
 	DEFAULT_HEIGHT = 100
 )
 
-type Screen struct {
-	Width, Height int
-	CellBuffer [][]termbox.Cell
+type InputData struct {
+	MousePressed  tcell.ButtonMask
+	KeyPressed    tcell.Key
+	MousePos      Vec
+}
 
+type Screen struct {
+	Screen        tcell.Screen
+	Cam    		  Vec
+	Width, Height int
+	CellBuffer    tcell.CellBuffer
+	InputBuffer   InputData
 }
 
 var (
@@ -22,53 +31,63 @@ var (
 )
 
 func (Screen *Screen) Init(){
-	err := termbox.Init()
+	screen, err := tcell.NewScreen()
 	if err != nil{
 		LogErr(err)
 	}
-	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
+	Screen.Screen = screen
+	if err = screen.Init(); err != nil{
+		LogErr(err)
+	}
+
+	defStyle := tcell.StyleDefault.
+		Background(tcell.ColorBlack).
+		Foreground(tcell.ColorWhite)
+	screen.SetStyle(defStyle)
+	screen.EnableMouse()
+	screen.Clear()
+
 	Screen.Width = DEFAULT_WIDTH
 	Screen.Height = DEFAULT_HEIGHT
 	Screen.Resize()
+	Screen.CellBuffer = tcell.CellBuffer{}
+	Screen.CellBuffer.Resize(Screen.Width, Screen.Height)
 }
 
 func (Screen *Screen) Resize(){
-	Screen.CellBuffer = make([][]termbox.Cell, Screen.Width)
-	for i := range Screen.CellBuffer {
-		Screen.CellBuffer[i] = make([]termbox.Cell, Screen.Height)
-	}
+	Screen.Screen.Sync()
 }
 
-func (Screen *Screen) Text(text string, x, y int, fg, bg termbox.Attribute){
+func (Screen *Screen) WorldToScreen(v Vec) Vec{
+	vNew := v
+	vNew.Add(Screen.Cam)
+	vNew.Add(Vec{X:Screen.Width/2, Y:Screen.Height/2})
+	return vNew
+}
+
+// TODO We may be able to just write the text directly
+func (Screen *Screen) Text(text string, pos Vec, style tcell.Style){
 	for i, r := range text {
-		if x+i >= Screen.Width {
-			x=0
-			y++
+		if pos.X+i >= Screen.Width {
+			pos.X=0
+			pos.Y++
 		}
-		Screen.CellBuffer[x+i][y].Ch = r
-		Screen.CellBuffer[x+i][y].Fg = fg
-		Screen.CellBuffer[x+i][y].Bg = bg
+		Screen.Char(r, V2(pos.X+i, pos.Y), style)
 	}
 }
 
-func (Screen *Screen) Char(r rune, x, y int, fg, bg termbox.Attribute){
-	Screen.CellBuffer[x][y].Ch = r
-	Screen.CellBuffer[x][y].Fg = fg
-	Screen.CellBuffer[x][y].Bg = bg
+func (Screen *Screen) Char(r rune, pos Vec, style tcell.Style){
+	Screen.CellBuffer.SetContent(pos.X, pos.Y, r, nil, style)
 }
 
-func (Screen *Screen) Rect(r rune, x, y, width, height int, fg, bg termbox.Attribute, fill bool){
-	for xTmp:=x; xTmp<x+width; xTmp++ {
-		for yTmp:=y; yTmp<y+height; yTmp++ {
+func (Screen *Screen) Rect(r rune, pos Vec, width, height int, style tcell.Style, fill bool){
+	for xTmp:=pos.X; xTmp<pos.Y+width; xTmp++ {
+		for yTmp:=pos.X; yTmp<pos.Y+height; yTmp++ {
 			if fill {
-				Screen.CellBuffer[xTmp][yTmp].Ch = r
-				Screen.CellBuffer[xTmp][yTmp].Fg = fg
-				Screen.CellBuffer[xTmp][yTmp].Bg = bg
+				Screen.Char(r, V2(xTmp, yTmp), style)
 			}else{
-				if (xTmp==x || xTmp==x+width-1) || (yTmp==y || yTmp==y+height-1) {
-					Screen.CellBuffer[xTmp][yTmp].Ch = r
-					Screen.CellBuffer[xTmp][yTmp].Fg = fg
-					Screen.CellBuffer[xTmp][yTmp].Bg = bg
+				if (xTmp==pos.X || xTmp==pos.X+width-1) || (yTmp==pos.Y || yTmp==pos.Y+height-1) {
+					Screen.Char(r, V2(xTmp, yTmp), style)
 				}
 			}
 		}
@@ -76,45 +95,43 @@ func (Screen *Screen) Rect(r rune, x, y, width, height int, fg, bg termbox.Attri
 }
 
 func (Screen *Screen) Draw(){
-	for Running {
-		ScreenMutex.Lock()
-		termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-		for y := 0; y < Screen.Height; y++ {
-			for x := 0; x < Screen.Width; x++ {
-				cell := Screen.CellBuffer[x][y]
-				termbox.SetCell(x, y, cell.Ch, cell.Fg, cell.Bg)
-			}
+	ScreenInstance.InputBuffer = InputData{}
+	for y := 0; y < Screen.Height; y++ {
+		for x := 0; x < Screen.Width; x++ {
+			rune, _, style, _ := Screen.CellBuffer.GetContent(x,y)
+			Screen.Screen.SetCell(x, y, style, rune)
 		}
-		termbox.Flush()
-		ScreenMutex.Unlock()
 	}
+	Screen.Screen.Show()
+	//Screen.Screen.Clear()
+	Screen.CellBuffer = tcell.CellBuffer{}
+	Screen.CellBuffer.Resize(Screen.Width, Screen.Height)
 }
 
 func (Screen *Screen) Poll() {
 	defer WaitGroup.Done()
 	for Running {
-		switch ev := termbox.PollEvent(); ev.Type {
-		case termbox.EventKey:
-			switch ev.Key {
-			case termbox.KeyEsc:
-				Running = false
-			case termbox.KeyF1:
-				Screen.Char('k', ev.MouseX, ev.MouseY, termbox.ColorGreen, termbox.AttrBold)
-			default:
-				break
+		ev := Screen.Screen.PollEvent()
+		switch ev := ev.(type){
+		case *tcell.EventKey:
+			if ev.Key() == tcell.KeyEscape{
+				os.Exit(2)
 			}
-		case termbox.EventMouse:
-			Screen.Char('m', ev.MouseX, ev.MouseY, 0, 0)
+			ScreenInstance.InputBuffer.KeyPressed = ev.Key()
 			break
-		case termbox.EventResize:
-			Screen.Width = ev.Width
-			Screen.Height = ev.Height
+		case *tcell.EventMouse:
+			ScreenInstance.InputBuffer.MousePressed = ev.Buttons()
+			x, y := ev.Position()
+			ScreenInstance.InputBuffer.MousePos = V2(x, y)
+			break
+		case *tcell.EventResize:
+			Screen.Width, Screen.Height = ev.Size()
 			Screen.Resize()
+			break
 		}
 	}
 }
 
 func (Screen *Screen) Close(){
-	termbox.Close()
 	WaitGroup.Done()
 }
