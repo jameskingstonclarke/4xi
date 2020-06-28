@@ -98,7 +98,7 @@ func (Window *Window) Draw(){
 				ScreenInstance.Char(tcell.RuneBlock, V2(col, row), tcell.StyleDefault, Window.View)
 			}
 		}
-		// draw the left & rightcolumn
+		// draw the left & right column
 		for row := Window.Pos.Y; row < Window.Pos.Y+Window.Size.Y; row++ {
 			ScreenInstance.Char(tcell.RuneVLine, V2(Window.Pos.X, row), tcell.StyleDefault, Window.View)
 			ScreenInstance.Char(tcell.RuneVLine, V2(Window.Pos.X+Window.Size.X, row), tcell.StyleDefault, Window.View)

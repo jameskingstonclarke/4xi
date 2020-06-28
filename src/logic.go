@@ -25,6 +25,7 @@ func (Logic *Logic) Init(){
 			Players:   nil,
 			GameState: nil,
 		}
+		Logic.Server.Init()
 	}
 }
 
