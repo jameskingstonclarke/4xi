@@ -36,9 +36,6 @@ func NewSettlement(empire *Empire, name string, pos Vec) *Settlement{
 }
 
 func (Settlement *Settlement) Update(){
-	// Process the name label
-	Settlement.NameLabel.Update()
-	Settlement.Window.Update()
 }
 
 func (Settlement *Settlement) Draw(){

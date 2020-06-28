@@ -68,6 +68,11 @@ func (Screen *Screen) WorldToScreen(v Vec) Vec{
 	return vNew.Add(Vec{X:Screen.Width/2, Y:Screen.Height/2})
 }
 
+func (Screen *Screen) ScreenToWorld(v Vec) Vec{
+	vNew := v.Sub(Vec{X:Screen.Width/2, Y:Screen.Height/2})
+	return vNew.Sub(Screen.Cam)
+}
+
 // TODO We may be able to just write the text directly
 func (Screen *Screen) Text(text string, pos Vec, style tcell.Style, view uint8){
 	for i, r := range text {
@@ -101,7 +106,12 @@ func (Screen *Screen) Rect(r rune, pos Vec, width, height int, style tcell.Style
 }
 
 func (Screen *Screen) Draw(){
-	ScreenInstance.InputBuffer = InputData{}
+	ScreenInstance.InputBuffer = InputData{
+		MousePressed:   0,
+		KeyPressed:     0,
+		CtrlKeyPressed: 0,
+		MousePos:       ScreenInstance.InputBuffer.MousePos,
+	}
 	for y := 0; y < Screen.Height; y++ {
 		for x := 0; x < Screen.Width; x++ {
 			rune, _, style, _ := Screen.CellBuffer.GetContent(x,y)

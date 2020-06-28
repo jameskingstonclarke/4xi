@@ -42,7 +42,8 @@ func (Client *Client) Process(){
 	}
 
 	for _, entity := range Client.GameState.Entities{
-		entity.Update()
+		// as we are the client, we only draw the entities
+		// we continually wait for the server to send us the updated game state
 		entity.Draw()
 	}
 }

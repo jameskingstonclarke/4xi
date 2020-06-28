@@ -14,19 +14,9 @@ type Server struct {
 }
 
 func (Server *Server) Process(){
-
-	// process camera movement
-	if ScreenInstance.InputBuffer.KeyPressed == 'a'{
-		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(1,0))
-	}else if ScreenInstance.InputBuffer.KeyPressed == 'd'{
-		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(-1,0))
-	}else if ScreenInstance.InputBuffer.KeyPressed == 'w'{
-		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(0,1))
-	}else if ScreenInstance.InputBuffer.KeyPressed == 's'{
-		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(0,-1))
-	}
-
 	for _, entity := range Server.GameState.Entities{
+		// as we are the server, we only update the game state
+		// we broadcast the updated game state to every client
 		entity.Update()
 	}
 }
