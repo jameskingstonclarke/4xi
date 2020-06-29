@@ -19,7 +19,7 @@ type BaseSettlement struct {
 	Population float64
 	PopGrowth  float64
 	Pos		   Vec
-	UIManager  *UIManager
+	DrawManager  *DrawManager
 }
 
 func NewSettlement(empire *Empire, name string, pos Vec) *BaseSettlement{
@@ -29,32 +29,28 @@ func NewSettlement(empire *Empire, name string, pos Vec) *BaseSettlement{
 		Population: 1,
 		PopGrowth:  0.0001,
 		Pos:        pos,
-		UIManager: NewUIManager(),
+		DrawManager: NewDrawManager(),
 	}
 	s.InitUI()
 	return s
 }
 
-func (Settlement *BaseSettlement) Update(){
-	Settlement.Population+=Settlement.PopGrowth
+func (S *BaseSettlement) Update(){
+	S.Population+=S.PopGrowth
 }
 
-func (Settlement *BaseSettlement) InitUI(){
+func (S *BaseSettlement) InitUI(){
 	// add the window for clicking on the settlement
-	w := NewWindow(Settlement.Name+":window", false, Settlement.Name, V2i(10, 10), V2i(20, 20), SCREEN_VIEW)
-	w.AddText(NewText(Settlement.Name+":population", true, fmt.Sprintf("population: %f",Settlement.Population), V2(0, 0), nil, tcell.StyleDefault, SCREEN_VIEW))
-	Settlement.UIManager.AddUI(w.ID, w)
-
-	// add the label for the settlement name
-	l := NewText(Settlement.Name+":label", true, Settlement.Name, Settlement.Pos.Sub(V2i(len(Settlement.Name)/2, 1)), func() {
+	w:=S.DrawManager.NewWin(S.Name, false, V2i(10, 10), V2i(20, 20), SCREEN_VIEW)
+	w.NewText("pop", fmt.Sprintf("pop: %f",S.Population), true, V2(0, 0), SCREEN_VIEW, tcell.StyleDefault, nil)
+	S.DrawManager.NewText("label", S.Name, true, S.Pos.Sub(V2i(len(S.Name)/2, 1)), WORLD_VIEW,tcell.StyleDefault.Background(tcell.ColorBlue),  func() {
 		w.Enable(true)
-	}, tcell.StyleDefault.Background(tcell.ColorBlue), WORLD_VIEW)
-	Settlement.UIManager.AddUI(l.ID, l)
+	})
 }
 
-func (Settlement *BaseSettlement) Draw(){
+func (S *BaseSettlement) Draw(){
 	// TODO add this into the UI manager
-	ScreenInstance.Char('▴', Settlement.Pos, tcell.StyleDefault.Foreground(tcell.ColorGreen), WORLD_VIEW)
-	Settlement.UIManager.SetWinText(Settlement.Name+":window", Settlement.Name+":population", fmt.Sprintf("population: %f",Settlement.Population))
-	Settlement.UIManager.Draw()
+	ScreenInstance.Char('▴', S.Pos, tcell.StyleDefault.Foreground(tcell.ColorGreen), WORLD_VIEW, 0)
+	S.DrawManager.SetWinText(S.Name, "pop", fmt.Sprintf("pop: %f",S.Population))
+	S.DrawManager.Draw()
 }

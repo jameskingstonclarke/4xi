@@ -42,8 +42,8 @@ func (Client *Client) Process(){
 		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(0,-1))
 	}
 
+	// TODO this Update() is only used in testing
 	if ScreenInstance.InputBuffer.KeyPressed == 'u' {
-		// TODO this Update() is only used in testing
 		Client.GameState.Update()
 	}
 	Client.GameState.Draw()

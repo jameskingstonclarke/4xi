@@ -9,35 +9,61 @@ type UI interface {
 	Draw()
 }
 
-type UIManager struct {
+type DrawManager struct {
 	// TODO optimise this by using a uint32 id
 	UI  map[string]UI
 }
 
 
 var(
-	UIManagerInstance = NewUIManager()
+	DrawManagerInstance = NewDrawManager()
 )
 
 
-func NewUIManager() *UIManager{
-	return &UIManager{UI: make(map[string]UI)}
+func NewDrawManager() *DrawManager{
+	return &DrawManager{UI: make(map[string]UI)}
 }
 
-func (UIManager *UIManager) Draw(){
-	for _, ui := range UIManager.UI{
+func (DrawManager *DrawManager) Draw(){
+	for _, ui := range DrawManager.UI{
 		ui.Draw()
 	}
 }
 
-func (UIManager *UIManager) AddUI(id string, ui UI){
-	UIManager.UI[id] = ui
+func (DrawManager *DrawManager) AddUI(id string, ui UI){
+	DrawManager.UI[id] = ui
+}
+
+func (DrawManager *DrawManager) NewWin(id string, enabled bool, pos, size Vec, view uint8,  text ...*Text) *Window{
+	w := &Window{
+		UITemplate: UITemplate{ID: id, Enabled: enabled, View: view},
+		Title:      id,
+		Pos:        pos,
+		Size:       size,
+		Text:  		nil,
+	}
+	w.AddText(text...)
+	DrawManager.AddUI(w.ID, w)
+	return w
+}
+
+
+func (DrawManager *DrawManager) NewText(id, text string, enabled bool, pos Vec, view uint8, style tcell.Style, callback Callback) *Text{
+	t := &Text{
+		UITemplate: UITemplate{ID: id, Enabled: enabled, View: view},
+		T:          text,
+		Pos:        pos,
+		Callback:   callback,
+		Style:      style,
+	}
+	DrawManager.AddUI(t.ID, t)
+	return t
 }
 
 // set the T value of a text UI element
-func (UIManager *UIManager) SetText(id, text string){
+func (DrawManager *DrawManager) SetText(id, text string){
 	// first check base UI elements
-	ui, ok := UIManager.UI[id]
+	ui, ok := DrawManager.UI[id]
 	if !ok{
 		// check each window
 		LogErr(errors.New("cannot find UI element "+id))
@@ -49,9 +75,9 @@ func (UIManager *UIManager) SetText(id, text string){
 }
 
 // set the T value of a text UI element
-func (UIManager *UIManager) GetText(id string) *Text{
+func (DrawManager *DrawManager) GetText(id string) *Text{
 	// first check base UI elements
-	ui, ok := UIManager.UI[id]
+	ui, ok := DrawManager.UI[id]
 	if !ok{
 		// check each window
 		LogErr(errors.New("cannot find UI element "+id))
@@ -64,9 +90,9 @@ func (UIManager *UIManager) GetText(id string) *Text{
 }
 
 // set the T value of a text UI element
-func (UIManager *UIManager) SetWinText(winID, id, text string){
+func (DrawManager *DrawManager) SetWinText(winID, id, text string){
 	// first check base UI elements
-	win, ok := UIManager.UI[winID]
+	win, ok := DrawManager.UI[winID]
 	if !ok{
 		// check each window
 		LogErr(errors.New("cannot find UI element "+id))
@@ -78,9 +104,19 @@ func (UIManager *UIManager) SetWinText(winID, id, text string){
 	}
 }
 
+func (Window *Window) NewText(id, text string, enabled bool, pos Vec, view uint8, style tcell.Style, callback Callback){
+	Window.AddText(&Text{
+		UITemplate: UITemplate{ID: id, Enabled: enabled, View: view},
+		T:          text,
+		Pos:        pos,
+		Callback:   callback,
+		Style:      style,
+	})
+}
+
 // set the T value of a text UI element
-func (UIManager *UIManager) WinAddText(winID string, text... *Text){
-	ui, ok := UIManager.UI[winID]
+func (DrawManager *DrawManager) WinAddText(winID string, text... *Text){
+	ui, ok := DrawManager.UI[winID]
 	if !ok{
 		LogErr(errors.New("cannot find UI element"+winID))
 	}
@@ -100,8 +136,8 @@ func (Window *Window) WinGetElem(id string) *Text{
 }
 
 // set the T value of a text UI element
-func (UIManager *UIManager) WinRemoveText(id string, textIDs... string){
-	ui, ok := UIManager.UI[id]
+func (DrawManager *DrawManager) WinRemoveText(id string, textIDs... string){
+	ui, ok := DrawManager.UI[id]
 	if !ok{
 		LogErr(errors.New("cannot find UI element"+id))
 	}
@@ -156,7 +192,7 @@ func (Text *Text) Draw(){
 			}
 		}
 
-		ScreenInstance.Text(Text.T, Text.Pos, tcell.StyleDefault, Text.View)
+		ScreenInstance.Text(Text.T, Text.Pos, Text.Style, Text.View,0)
 	}
 }
 
@@ -258,24 +294,24 @@ func (Window *Window) Draw(){
 		// draw the main body
 		for col := Window.Pos.X; col < Window.Pos.X+Window.Size.X; col++ {
 			for row := Window.Pos.Y; row < Window.Pos.Y+Window.Size.Y; row++ {
-				ScreenInstance.Char(tcell.RuneBlock, V2(col, row), tcell.StyleDefault, Window.View)
+				ScreenInstance.Char(tcell.RuneBlock, V2(col, row), tcell.StyleDefault, Window.View,0)
 			}
 		}
 		// draw the left & right column
 		for row := Window.Pos.Y; row < Window.Pos.Y+Window.Size.Y; row++ {
-			ScreenInstance.Char(tcell.RuneVLine, V2(Window.Pos.X, row), tcell.StyleDefault, Window.View)
-			ScreenInstance.Char(tcell.RuneVLine, V2(Window.Pos.X+Window.Size.X, row), tcell.StyleDefault, Window.View)
+			ScreenInstance.Char(tcell.RuneVLine, V2(Window.Pos.X, row), tcell.StyleDefault, Window.View,0)
+			ScreenInstance.Char(tcell.RuneVLine, V2(Window.Pos.X+Window.Size.X, row), tcell.StyleDefault, Window.View,0)
 		}
 		// draw the top & bottom row
 		for col := Window.Pos.X; col < Window.Pos.X+Window.Size.X; col++ {
-			ScreenInstance.Char(tcell.RuneHLine, V2(col, Window.Pos.Y), tcell.StyleDefault, Window.View)
-			ScreenInstance.Char(tcell.RuneHLine, V2(col, Window.Pos.Y+Window.Size.Y), tcell.StyleDefault, Window.View)
+			ScreenInstance.Char(tcell.RuneHLine, V2(col, Window.Pos.Y), tcell.StyleDefault, Window.View,0)
+			ScreenInstance.Char(tcell.RuneHLine, V2(col, Window.Pos.Y+Window.Size.Y), tcell.StyleDefault, Window.View,0)
 		}
-		ScreenInstance.Char(tcell.RuneULCorner, V2(Window.Pos.X, Window.Pos.Y), tcell.StyleDefault, SCREEN_VIEW)
-		ScreenInstance.Char('x', V2(Window.Pos.X+Window.Size.X, Window.Pos.Y), tcell.StyleDefault, SCREEN_VIEW)
-		ScreenInstance.Char(tcell.RuneLLCorner, V2(Window.Pos.X, Window.Pos.Y+Window.Size.Y), tcell.StyleDefault, Window.View)
-		ScreenInstance.Char(tcell.RuneLRCorner, V2(Window.Pos.X+Window.Size.X, Window.Pos.Y+Window.Size.Y), tcell.StyleDefault, Window.View)
-		ScreenInstance.Text(Window.Title, Window.Pos, tcell.StyleDefault, Window.View)
+		ScreenInstance.Char(tcell.RuneULCorner, V2(Window.Pos.X, Window.Pos.Y), tcell.StyleDefault, SCREEN_VIEW,0)
+		ScreenInstance.Char('x', V2(Window.Pos.X+Window.Size.X, Window.Pos.Y), tcell.StyleDefault, SCREEN_VIEW,0)
+		ScreenInstance.Char(tcell.RuneLLCorner, V2(Window.Pos.X, Window.Pos.Y+Window.Size.Y), tcell.StyleDefault, Window.View,0)
+		ScreenInstance.Char(tcell.RuneLRCorner, V2(Window.Pos.X+Window.Size.X, Window.Pos.Y+Window.Size.Y), tcell.StyleDefault, Window.View,0)
+		ScreenInstance.Text(Window.Title, Window.Pos, tcell.StyleDefault, Window.View,0)
 
 
 

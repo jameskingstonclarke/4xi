@@ -12,6 +12,8 @@ const (
 
 	WORLD_VIEW     = 0x0
 	SCREEN_VIEW    = 0x1
+
+	Z_DEPTH        = 0x3
 )
 
 type InputData struct {
@@ -26,7 +28,7 @@ type Screen struct {
 	Screen        tcell.Screen
 	Cam    		  Vec
 	Width, Height int
-	CellBuffer    tcell.CellBuffer
+	ZBuffer       []tcell.CellBuffer
 	InputBuffer   InputData
 }
 
@@ -55,8 +57,11 @@ func (Screen *Screen) Init(){
 	Screen.Width = DEFAULT_WIDTH
 	Screen.Height = DEFAULT_HEIGHT
 	Screen.Resize()
-	Screen.CellBuffer = tcell.CellBuffer{}
-	Screen.CellBuffer.Resize(Screen.Width, Screen.Height)
+	Screen.ZBuffer = make([]tcell.CellBuffer, 3)
+	for i:=0; i<Z_DEPTH; i++ {
+		Screen.ZBuffer[i] = tcell.CellBuffer{}
+		Screen.ZBuffer[i].Resize(Screen.Width, Screen.Height)
+	}
 }
 
 func (Screen *Screen) Resize(){
@@ -74,31 +79,31 @@ func (Screen *Screen) ScreenToWorld(v Vec) Vec{
 }
 
 // TODO We may be able to just write the text directly
-func (Screen *Screen) Text(text string, pos Vec, style tcell.Style, view uint8){
+func (Screen *Screen) Text(text string, pos Vec, style tcell.Style, view uint8, depth int){
 	for i, r := range text {
 		if int(pos.X)+i >= Screen.Width {
 			pos.X=0
 			pos.Y++
 		}
-		Screen.Char(r, V2i(int(pos.X)+i, int(pos.Y)), style, view)
+		Screen.Char(r, V2i(int(pos.X)+i, int(pos.Y)), style, view, depth)
 	}
 }
 
-func (Screen *Screen) Char(r rune, pos Vec, style tcell.Style, view uint8){
+func (Screen *Screen) Char(r rune, pos Vec, style tcell.Style, view uint8, depth int){
 	if view == WORLD_VIEW{
 		pos = Screen.WorldToScreen(pos)
 	}
-	Screen.CellBuffer.SetContent(int(pos.X), int(pos.Y), r, nil, style)
+	Screen.ZBuffer[depth].SetContent(int(pos.X), int(pos.Y), r, nil, style)
 }
 
-func (Screen *Screen) Rect(r rune, pos Vec, width, height int, style tcell.Style, fill bool, view uint8){
+func (Screen *Screen) Rect(r rune, pos Vec, width, height int, style tcell.Style, fill bool, view uint8, depth int){
 	for xTmp:=int(pos.X); xTmp<int(pos.Y)+width; xTmp++ {
 		for yTmp:=int(pos.X); yTmp<int(pos.Y)+height; yTmp++ {
 			if fill {
-				Screen.Char(r, V2i(xTmp, yTmp), style, view)
+				Screen.Char(r, V2i(xTmp, yTmp), style, view, depth)
 			}else{
 				if (xTmp ==int(pos.X) || xTmp==int(pos.X)+width-1) || (yTmp==int(pos.Y) || yTmp==int(pos.Y)+height-1) {
-					Screen.Char(r, V2i(xTmp, yTmp), style, view)
+					Screen.Char(r, V2i(xTmp, yTmp), style, view, depth)
 				}
 			}
 		}
@@ -114,14 +119,23 @@ func (Screen *Screen) Draw(){
 	}
 	for y := 0; y < Screen.Height; y++ {
 		for x := 0; x < Screen.Width; x++ {
-			rune, _, style, _ := Screen.CellBuffer.GetContent(x,y)
-			Screen.Screen.SetCell(x, y, style, rune)
+			for i:=0; i<Z_DEPTH;i++ {
+				rune, _, style, _ := Screen.ZBuffer[i].GetContent(x, y)
+				// we have to draw the cell if the z-depth is 0 to clear the screen,
+				// otherwise we get drawing artifacts. The reason we draw only if the rune
+				// if not ' ' is becuase otherwise it would clear the char in the lower depth.
+				if i == 0 || rune != ' ' {
+					Screen.Screen.SetCell(x, y, style, rune)
+				}
+			}
 		}
 	}
 	Screen.Screen.Show()
 	//Screen.Screen.Clear()
-	Screen.CellBuffer = tcell.CellBuffer{}
-	Screen.CellBuffer.Resize(Screen.Width, Screen.Height)
+	for i:=0; i<Z_DEPTH; i++ {
+		Screen.ZBuffer[i] = tcell.CellBuffer{}
+		Screen.ZBuffer[i].Resize(Screen.Width, Screen.Height)
+	}
 }
 
 func (Screen *Screen) Poll() {
