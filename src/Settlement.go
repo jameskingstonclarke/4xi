@@ -1,10 +1,15 @@
 package src
 
 import (
+	"fmt"
 	"github.com/gdamore/tcell"
 )
 
-type Settlement interface{}
+type Settlement interface{
+	Update()
+	Draw()
+	InitUI()
+}
 
 // represents a settlement that belongs to an empire
 // implements Entity
@@ -12,41 +17,44 @@ type BaseSettlement struct {
 	Empire 	   *Empire
 	Name       string
 	Population float64
+	PopGrowth  float64
 	Pos		   Vec
-
-	// UI
-	NameLabel  *Text
-	Window     *Window
+	UIManager  *UIManager
 }
 
 func NewSettlement(empire *Empire, name string, pos Vec) *BaseSettlement{
 	s := &BaseSettlement{
 		Empire:     empire,
 		Name:       name,
-		Population: 1.0,
+		Population: 1,
+		PopGrowth:  0.0001,
 		Pos:        pos,
-		NameLabel:  nil,
-		Window:     nil,
+		UIManager: NewUIManager(),
 	}
-
-	s.Window = NewWindow("settlement_window",false, name, V2(10,10), V2(20,20), SCREEN_VIEW)
-	s.Window.AddText(NewText("l1",true, "line of text 1", V2(0,0), nil, tcell.StyleDefault, SCREEN_VIEW))
-	s.Window.AddText(NewText("l2",true, "line of text 2", V2(0,0), nil, tcell.StyleDefault, SCREEN_VIEW))
-	s.Window.AddText(NewText("l3",true, "line of text 3", V2(0,0), nil, tcell.StyleDefault, SCREEN_VIEW))
-	s.NameLabel = NewText("settlement_name",true, s.Name, s.Pos.Sub(V2(len(s.Name)/2, 1)), func() {
-		s.Window.Enable(true)
-	}, tcell.StyleDefault.Background(tcell.ColorBlue), WORLD_VIEW)
-
+	s.InitUI()
 	return s
 }
 
 func (Settlement *BaseSettlement) Update(){
+	Settlement.Population+=Settlement.PopGrowth
+}
+
+func (Settlement *BaseSettlement) InitUI(){
+	// add the window for clicking on the settlement
+	w := NewWindow(Settlement.Name+":window", false, Settlement.Name, V2(10, 10), V2(20, 20), SCREEN_VIEW)
+	w.AddText(NewText(Settlement.Name+":population", true, fmt.Sprintf("population: %f",Settlement.Population), V2(0, 0), nil, tcell.StyleDefault, SCREEN_VIEW))
+	Settlement.UIManager.AddUI(w.ID, w)
+
+	// add the label for the settlement name
+	l := NewText(Settlement.Name+":label", true, Settlement.Name, Settlement.Pos.Sub(V2(len(Settlement.Name)/2, 1)), func() {
+		w.Enable(true)
+	}, tcell.StyleDefault.Background(tcell.ColorBlue), WORLD_VIEW)
+	Settlement.UIManager.AddUI(l.ID, l)
 }
 
 func (Settlement *BaseSettlement) Draw(){
-	// draw the settlement symbol
+	// TODO add this into the UI manager
 	ScreenInstance.Char('▴', Settlement.Pos, tcell.StyleDefault.Foreground(tcell.ColorGreen), WORLD_VIEW)
-	// draw the name label
-	Settlement.NameLabel.Draw()
-	Settlement.Window.Draw()
+	Settlement.UIManager.SetWinText(Settlement.Name+":window", Settlement.Name+":population", fmt.Sprintf("population: %f",Settlement.Population))
+	Settlement.UIManager.Draw()
 }

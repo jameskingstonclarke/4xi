@@ -20,11 +20,12 @@ func (Client *Client) Init(){
 
 	Client.GameState = &GameState{
 		Turn:     0,
-		Entities: nil,
+		World: NewWorld(100,50,123),
 	}
 
-	Client.GameState.Entities = append(Client.GameState.Entities, NewWorld(100,50,123))
-	Client.GameState.Entities = append(Client.GameState.Entities, NewSettlement(nil, "babylon", V2(10,10)))
+	e:=NewEmpire("test_empire")
+	Client.GameState.World.Empires = append(Client.GameState.World.Empires, e)
+	e.Settlements = append(e.Settlements, NewSettlement(e, "babylon", V2(10,10)))
 }
 
 // process all updatable entities
@@ -41,11 +42,9 @@ func (Client *Client) Process(){
 		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(0,-1))
 	}
 
-	for _, entity := range Client.GameState.Entities{
-		// as we are the client, we only draw the entities
-		// we continually wait for the server to send us the updated game state
-		entity.Draw()
-	}
+	// TODO this Update() is only used in testing
+	Client.GameState.World.Update()
+	Client.GameState.World.Draw()
 }
 
 func (Client *Client) SendMsg(msg string){

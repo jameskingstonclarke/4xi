@@ -5,12 +5,17 @@ const (
 )
 
 type Unit interface {
-
+	Update()
+	Draw()
 }
 
 type BaseUnit struct {
-	Type      uint32
-	Health    float64
-	MoveSpeed float64
-	Pos       Vec
+	Type        uint32
+	Health      float64
+	// how many tiles we move per update
+	MoveSpeed   float64
+	Pos, Target Vec
 }
+
+func (BaseUnit *BaseUnit) Update(){}
+func (BaseUnit *BaseUnit) Draw(){}

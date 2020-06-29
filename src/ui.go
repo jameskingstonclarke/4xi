@@ -14,18 +14,51 @@ type UIManager struct {
 	UI  map[string]UI
 }
 
+
+var(
+	UIManagerInstance = NewUIManager()
+)
+
+
 func NewUIManager() *UIManager{
 	return &UIManager{UI: make(map[string]UI)}
 }
 
+func (UIManager *UIManager) Draw(){
+	for _, ui := range UIManager.UI{
+		ui.Draw()
+	}
+}
+
+func (UIManager *UIManager) AddUI(id string, ui UI){
+	UIManager.UI[id] = ui
+}
+
 // set the T value of a text UI element
 func (UIManager *UIManager) SetText(id, text string){
+	// first check base UI elements
 	ui, ok := UIManager.UI[id]
 	if !ok{
-		LogErr(errors.New("cannot find UI element"+id))
+		// check each window
+		LogErr(errors.New("cannot find UI element "+id))
 	}
 	switch t:=ui.(type){
 	case *Text:
+		t.T = text
+	}
+}
+
+// set the T value of a text UI element
+func (UIManager *UIManager) SetWinText(winID, id, text string){
+	// first check base UI elements
+	win, ok := UIManager.UI[winID]
+	if !ok{
+		// check each window
+		LogErr(errors.New("cannot find UI element "+id))
+	}
+	switch w:=win.(type){
+	case *Window:
+		t := w.WinGetElem(id)
 		t.T = text
 	}
 }
@@ -40,6 +73,15 @@ func (UIManager *UIManager) WinAddText(winID string, text... *Text){
 	case *Window:
 		w.AddText(text...)
 	}
+}
+
+func (Window *Window) WinGetElem(id string) *Text{
+	for _, elem := range Window.Text{
+		if elem.ID == id{
+			return elem
+		}
+	}
+	return nil
 }
 
 // set the T value of a text UI element

@@ -49,7 +49,11 @@ func NewWorld(width, height int, seed int64) *World{
 	return w
 }
 
-func (World *World) Update() {}
+func (World *World) Update() {
+	for _, empire := range World.Empires{
+		empire.Update()
+	}
+}
 
 func (World *World) Draw() {
 	for _, cellRow := range World.Cells {
@@ -63,5 +67,8 @@ func (World *World) Draw() {
 				ScreenInstance.Char(tcell.RuneBlock, cell.Pos, tcell.StyleDefault.Foreground(tcell.ColorGreen), WORLD_VIEW)
 			}
 		}
+	}
+	for _, empire := range World.Empires{
+		empire.Draw()
 	}
 }

@@ -14,11 +14,7 @@ type Server struct {
 }
 
 func (Server *Server) Process(){
-	for _, entity := range Server.GameState.Entities{
-		// as we are the server, we only update the game state
-		// we broadcast the updated game state to every client
-		entity.Update()
-	}
+	Server.GameState.World.Update()
 }
 
 func (Server *Server) Init(){

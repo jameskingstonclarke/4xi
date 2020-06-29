@@ -17,5 +17,5 @@ type GameState struct {
 	Mode uint8
 	Turn int
 	// represents every single entity in the game (e.g. settlements, empires etc)
-	Entities []Entity
+	World *World
 }
