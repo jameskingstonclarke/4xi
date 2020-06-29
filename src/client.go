@@ -23,7 +23,7 @@ func (Client *Client) Init(){
 		Entities: nil,
 	}
 
-	Client.GameState.Entities = append(Client.GameState.Entities, NewWorld(250,100,123))
+	Client.GameState.Entities = append(Client.GameState.Entities, NewWorld(100,50,123))
 	Client.GameState.Entities = append(Client.GameState.Entities, NewSettlement(nil, "babylon", V2(10,10)))
 }
 
