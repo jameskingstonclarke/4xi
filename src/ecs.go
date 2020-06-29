@@ -1,5 +1,7 @@
 package src
 
+import "reflect"
+
 var (
 	EId uint32 = 0
 )
@@ -64,13 +66,26 @@ func (ECS *ECS) RegisterSystem(System System){
 	ECS.Systems[priority] = append(ECS.Systems[priority], System)
 }
 
+// fire an event into the ECS
+func (ECS *ECS) Event(Event Event){
+	// check each system to see if it is capable of hearing the event
+	for _, s := range ECS.Sys(){
+
+		//reflect.ValueOf(s).MethodByName("Listen").Call([]reflect.Value{})
+		method := reflect.ValueOf(s).MethodByName("Listen")
+		valid := method.IsValid()
+		if valid{
+			// check if the event matches the function type
+			if method.Type().In(0) == reflect.TypeOf(Event){
+				method.Call([]reflect.Value{reflect.ValueOf(Event)})
+			}
+		}
+	}
+}
+
 type Entity struct {
 	// Unique id for this entity
 	ID   uint32
-}
-
-// fire an event into the ECS
-func (Entity *Entity) Event(id string, data... string){
 }
 
 func NewEntity() *Entity{
@@ -108,4 +123,11 @@ type Initialiser interface {
 
 type Closer interface {
 	Close(ECS *ECS)
+}
+
+type Event interface {
+}
+
+type EventBase struct {
+	Entity *Entity
 }

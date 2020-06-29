@@ -2,6 +2,7 @@ package src
 
 import (
 	"github.com/gdamore/tcell"
+	"os"
 )
 
 // renderer is a system
