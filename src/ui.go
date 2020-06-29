@@ -49,6 +49,21 @@ func (UIManager *UIManager) SetText(id, text string){
 }
 
 // set the T value of a text UI element
+func (UIManager *UIManager) GetText(id string) *Text{
+	// first check base UI elements
+	ui, ok := UIManager.UI[id]
+	if !ok{
+		// check each window
+		LogErr(errors.New("cannot find UI element "+id))
+	}
+	switch t:=ui.(type){
+	case *Text:
+		return t
+	}
+	return nil
+}
+
+// set the T value of a text UI element
 func (UIManager *UIManager) SetWinText(winID, id, text string){
 	// first check base UI elements
 	win, ok := UIManager.UI[winID]
@@ -134,7 +149,7 @@ func (Text *Text) Draw(){
 			pos = ScreenInstance.WorldToScreen(pos)
 		}
 		if ScreenInstance.InputBuffer.MousePressed&tcell.Button1 != 0 {
-			if ScreenInstance.InputBuffer.MousePos.X > pos.X && ScreenInstance.InputBuffer.MousePos.X < pos.X+len(Text.T) {
+			if ScreenInstance.InputBuffer.MousePos.X >= pos.X && int(ScreenInstance.InputBuffer.MousePos.X) <= int(pos.X)+len(Text.T) {
 				if ScreenInstance.InputBuffer.MousePos.Y == pos.Y {
 					Text.Callback()
 				}
@@ -190,8 +205,7 @@ func (Window *Window) UpdateTextPos(){
 	i:=0
 	for _, t := range Window.Text {
 		// the position of the text is the index in the list, plus the border width of the window and the window pos
-		t.Pos.Y = (Window.Pos.Y+1) + i
-		t.Pos.X = Window.Pos.X+1
+		t.Pos = V2i(int(Window.Pos.X)+1,int(Window.Pos.Y) + 1 + i)
 		i++
 	}
 }
@@ -206,7 +220,7 @@ func (Window *Window) UpdateSize(){
 		}
 	}
 	height = len(Window.Text)
-	Window.Size = V2(width+1, height+1)
+	Window.Size = V2i(width+1, height+1)
 }
 
 func (Window *Window) Draw(){
@@ -219,7 +233,7 @@ func (Window *Window) Draw(){
 				Window.Enable(false)
 			}
 			// check if we are scrolling the window
-			if ScreenInstance.InputBuffer.MousePos.X > Window.Pos.X && ScreenInstance.InputBuffer.MousePos.X < Window.Pos.X+Window.Size.X{
+			if ScreenInstance.InputBuffer.MousePos.X >= Window.Pos.X && ScreenInstance.InputBuffer.MousePos.X <= Window.Pos.X+Window.Size.X{
 				if ScreenInstance.InputBuffer.MousePos.Y == Window.Pos.Y{
 					// update the state of the window to indicate it has started or stopped to be dragged
 					Window.Dragging = !Window.Dragging

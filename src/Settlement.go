@@ -41,12 +41,12 @@ func (Settlement *BaseSettlement) Update(){
 
 func (Settlement *BaseSettlement) InitUI(){
 	// add the window for clicking on the settlement
-	w := NewWindow(Settlement.Name+":window", false, Settlement.Name, V2(10, 10), V2(20, 20), SCREEN_VIEW)
+	w := NewWindow(Settlement.Name+":window", false, Settlement.Name, V2i(10, 10), V2i(20, 20), SCREEN_VIEW)
 	w.AddText(NewText(Settlement.Name+":population", true, fmt.Sprintf("population: %f",Settlement.Population), V2(0, 0), nil, tcell.StyleDefault, SCREEN_VIEW))
 	Settlement.UIManager.AddUI(w.ID, w)
 
 	// add the label for the settlement name
-	l := NewText(Settlement.Name+":label", true, Settlement.Name, Settlement.Pos.Sub(V2(len(Settlement.Name)/2, 1)), func() {
+	l := NewText(Settlement.Name+":label", true, Settlement.Name, Settlement.Pos.Sub(V2i(len(Settlement.Name)/2, 1)), func() {
 		w.Enable(true)
 	}, tcell.StyleDefault.Background(tcell.ColorBlue), WORLD_VIEW)
 	Settlement.UIManager.AddUI(l.ID, l)

@@ -35,7 +35,7 @@ func NewWorld(width, height int, seed int64) *World{
 	p := perlin.NewPerlin(2,3,5, seed)
 	for x:=0;x<width;x++{
 		for y:=0;y<height;y++{
-			w.Cells[x][y].Pos = V2(x,y)
+			w.Cells[x][y].Pos = V2i(x,y)
 			noise := p.Noise2D(float64(x)/100,float64(y)/100)*-1
 			if noise > 0.2{
 				w.Cells[x][y].Type = CELL_WATER

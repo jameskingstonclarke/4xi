@@ -11,7 +11,7 @@ type Empire struct {
 }
 
 func NewEmpire(name string) *Empire{
-	return &Empire{
+	e := &Empire{
 		Name:        name,
 		Money:       0,
 		MPT:         0,
@@ -20,6 +20,8 @@ func NewEmpire(name string) *Empire{
 		Settlements: nil,
 		Units:       nil,
 	}
+	e.Units = append(e.Units, NewBaseUnit())
+	return e
 }
 
 // calculate updated MPT & HPT

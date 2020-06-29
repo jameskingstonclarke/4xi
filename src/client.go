@@ -42,9 +42,11 @@ func (Client *Client) Process(){
 		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(0,-1))
 	}
 
-	// TODO this Update() is only used in testing
-	Client.GameState.World.Update()
-	Client.GameState.World.Draw()
+	if ScreenInstance.InputBuffer.KeyPressed == 'u' {
+		// TODO this Update() is only used in testing
+		Client.GameState.Update()
+	}
+	Client.GameState.Draw()
 }
 
 func (Client *Client) SendMsg(msg string){

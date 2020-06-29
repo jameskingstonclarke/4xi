@@ -19,3 +19,16 @@ type GameState struct {
 	// represents every single entity in the game (e.g. settlements, empires etc)
 	World *World
 }
+
+func (GameState *GameState) Update(){
+	GameState.NextTurn()
+}
+
+func (GameState *GameState) NextTurn(){
+	GameState.Turn++
+	GameState.World.Update()
+}
+
+func (GameState *GameState) Draw(){
+	GameState.World.Draw()
+}

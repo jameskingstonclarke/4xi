@@ -65,22 +65,22 @@ func (Screen *Screen) Resize(){
 
 func (Screen *Screen) WorldToScreen(v Vec) Vec{
 	vNew := v.Add(Screen.Cam)
-	return vNew.Add(Vec{X:Screen.Width/2, Y:Screen.Height/2})
+	return vNew.Add(V2i(Screen.Width/2, Screen.Height/2))
 }
 
 func (Screen *Screen) ScreenToWorld(v Vec) Vec{
-	vNew := v.Sub(Vec{X:Screen.Width/2, Y:Screen.Height/2})
+	vNew := v.Sub(V2i(Screen.Width/2, Screen.Height/2))
 	return vNew.Sub(Screen.Cam)
 }
 
 // TODO We may be able to just write the text directly
 func (Screen *Screen) Text(text string, pos Vec, style tcell.Style, view uint8){
 	for i, r := range text {
-		if pos.X+i >= Screen.Width {
+		if int(pos.X)+i >= Screen.Width {
 			pos.X=0
 			pos.Y++
 		}
-		Screen.Char(r, V2(pos.X+i, pos.Y), style, view)
+		Screen.Char(r, V2i(int(pos.X)+i, int(pos.Y)), style, view)
 	}
 }
 
@@ -88,17 +88,17 @@ func (Screen *Screen) Char(r rune, pos Vec, style tcell.Style, view uint8){
 	if view == WORLD_VIEW{
 		pos = Screen.WorldToScreen(pos)
 	}
-	Screen.CellBuffer.SetContent(pos.X, pos.Y, r, nil, style)
+	Screen.CellBuffer.SetContent(int(pos.X), int(pos.Y), r, nil, style)
 }
 
 func (Screen *Screen) Rect(r rune, pos Vec, width, height int, style tcell.Style, fill bool, view uint8){
-	for xTmp:=pos.X; xTmp<pos.Y+width; xTmp++ {
-		for yTmp:=pos.X; yTmp<pos.Y+height; yTmp++ {
+	for xTmp:=int(pos.X); xTmp<int(pos.Y)+width; xTmp++ {
+		for yTmp:=int(pos.X); yTmp<int(pos.Y)+height; yTmp++ {
 			if fill {
-				Screen.Char(r, V2(xTmp, yTmp), style, view)
+				Screen.Char(r, V2i(xTmp, yTmp), style, view)
 			}else{
-				if (xTmp==pos.X || xTmp==pos.X+width-1) || (yTmp==pos.Y || yTmp==pos.Y+height-1) {
-					Screen.Char(r, V2(xTmp, yTmp), style, view)
+				if (xTmp ==int(pos.X) || xTmp==int(pos.X)+width-1) || (yTmp==int(pos.Y) || yTmp==int(pos.Y)+height-1) {
+					Screen.Char(r, V2i(xTmp, yTmp), style, view)
 				}
 			}
 		}
@@ -141,7 +141,7 @@ func (Screen *Screen) Poll() {
 		case *tcell.EventMouse:
 			ScreenInstance.InputBuffer.MousePressed = ev.Buttons()
 			x, y := ev.Position()
-			ScreenInstance.InputBuffer.MousePos = V2(x, y)
+			ScreenInstance.InputBuffer.MousePos = V2i(x, y)
 			break
 		case *tcell.EventResize:
 			Screen.Width, Screen.Height = ev.Size()
