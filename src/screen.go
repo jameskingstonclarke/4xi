@@ -3,7 +3,6 @@ package src
 import (
 	"github.com/gdamore/tcell"
 	"os"
-	"sync"
 )
 
 const (
@@ -29,12 +28,10 @@ type Screen struct {
 	Cam    		  Vec
 	Width, Height int
 	ZBuffer       []tcell.CellBuffer
-	InputBuffer   InputData
 }
 
 var (
-	ScreenInstance = &Screen{}
-	ScreenMutex = &sync.Mutex{}
+	InputBuffer = InputData{}
 )
 
 func (Screen *Screen) Init(){
@@ -111,11 +108,11 @@ func (Screen *Screen) Rect(r rune, pos Vec, width, height int, style tcell.Style
 }
 
 func (Screen *Screen) Draw(){
-	ScreenInstance.InputBuffer = InputData{
+	InputBuffer = InputData{
 		MousePressed:   0,
 		KeyPressed:     0,
 		CtrlKeyPressed: 0,
-		MousePos:       ScreenInstance.InputBuffer.MousePos,
+		MousePos:       InputBuffer.MousePos,
 	}
 	for y := 0; y < Screen.Height; y++ {
 		for x := 0; x < Screen.Width; x++ {
@@ -131,7 +128,6 @@ func (Screen *Screen) Draw(){
 		}
 	}
 	Screen.Screen.Show()
-	//Screen.Screen.Clear()
 	for i:=0; i<Z_DEPTH; i++ {
 		Screen.ZBuffer[i] = tcell.CellBuffer{}
 		Screen.ZBuffer[i].Resize(Screen.Width, Screen.Height)
@@ -139,23 +135,22 @@ func (Screen *Screen) Draw(){
 }
 
 func (Screen *Screen) Poll() {
-	defer WaitGroup.Done()
 	for Running {
 		ev := Screen.Screen.PollEvent()
 		switch ev := ev.(type){
 		case *tcell.EventKey:
 			if ev.Key() == tcell.KeyRune{
-				ScreenInstance.InputBuffer.KeyPressed = ev.Rune()
+				InputBuffer.KeyPressed = ev.Rune()
 			}else if ev.Key() == tcell.KeyEscape{
 				os.Exit(2)
 			}else {
-				ScreenInstance.InputBuffer.CtrlKeyPressed = ev.Key()
+			    InputBuffer.CtrlKeyPressed = ev.Key()
 			}
 			break
 		case *tcell.EventMouse:
-			ScreenInstance.InputBuffer.MousePressed = ev.Buttons()
+			InputBuffer.MousePressed = ev.Buttons()
 			x, y := ev.Position()
-			ScreenInstance.InputBuffer.MousePos = V2i(x, y)
+			InputBuffer.MousePos = V2i(x, y)
 			break
 		case *tcell.EventResize:
 			Screen.Width, Screen.Height = ev.Size()
@@ -166,5 +161,4 @@ func (Screen *Screen) Poll() {
 }
 
 func (Screen *Screen) Close(){
-	WaitGroup.Done()
 }

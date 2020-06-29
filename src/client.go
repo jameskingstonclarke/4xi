@@ -7,46 +7,35 @@ import (
 )
 
 type Client struct {
-	GameState  *GameState
+	ECS        *ECS
 	Connection net.Conn
 }
 
-func (Client *Client) Init(){
+
+func NewClient() *Client{
 	//conn, err := net.Dial("tcp", "localhost:"+PORT)
 	//if err != nil{
 	//	LogErr(err)
 	//}
 	//Client.Connection = conn
 
-	Client.GameState = &GameState{
-		Turn:     0,
-		World: NewWorld(100,50,123),
+	// create a client by registering all the relevant ECS systems
+	ecs := NewECS()
+	ecs.RegisterSystem(&WorldSys{SystemBase: NewSysBase()})
+	ecs.RegisterSystem(&RendererSys{SystemBase: NewSysBase()})
+	return &Client{
+		ECS:        ecs,
+		Connection: nil,
 	}
+}
 
-	e:=NewEmpire("test_empire")
-	Client.GameState.World.Empires = append(Client.GameState.World.Empires, e)
-	e.Settlements = append(e.Settlements, NewSettlement(e, "babylon", V2(10,10)))
+func (Client *Client) Init(){
+	Client.ECS.Init()
 }
 
 // process all updatable entities
 func (Client *Client) Process(){
-
-	// process camera movement
-	if ScreenInstance.InputBuffer.KeyPressed == 'a'{
-		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(1,0))
-	}else if ScreenInstance.InputBuffer.KeyPressed == 'd'{
-		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(-1,0))
-	}else if ScreenInstance.InputBuffer.KeyPressed == 'w'{
-		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(0,1))
-	}else if ScreenInstance.InputBuffer.KeyPressed == 's'{
-		ScreenInstance.Cam = ScreenInstance.Cam.Add(V2(0,-1))
-	}
-
-	// TODO this Update() is only used in testing
-	if ScreenInstance.InputBuffer.KeyPressed == 'u' {
-		Client.GameState.Update()
-	}
-	Client.GameState.Draw()
+	Client.ECS.Update()
 }
 
 func (Client *Client) SendMsg(msg string){
@@ -69,5 +58,6 @@ func (Client *Client) RequestGameState(){
 }
 
 func (Client *Client) Close(){
+	Client.ECS.Close()
 	Client.Connection.Close()
 }

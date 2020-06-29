@@ -7,14 +7,13 @@ import (
 
 // represents a game server
 type Server struct {
-	Listener  net.Listener
-	Clients   map[uint8]net.Conn
-	Players   []*Player
-	GameState *GameState
+	Listener net.Listener
+	Clients  map[uint8]net.Conn
+	ECS 	 *ECS
 }
 
 func (Server *Server) Process(){
-	Server.GameState.World.Update()
+	Server.ECS.Update()
 }
 
 func (Server *Server) Init(){
@@ -23,6 +22,8 @@ func (Server *Server) Init(){
 		LogErr(err)
 	}
 	Server.Listener = listener
+
+	Server.ECS.Init()
 }
 
 func (Server *Server) AcceptClient(){
@@ -58,4 +59,5 @@ func (Server *Server) Close(){
 	for _, c := range Server.Clients{
 		c.Close()
 	}
+	Server.ECS.Close()
 }
