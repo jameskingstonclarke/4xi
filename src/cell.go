@@ -1,5 +1,7 @@
 package src
 
+import "github.com/gdamore/tcell"
+
 const (
 	CELL_WATER  uint32 = 0x0
 	CELL_PLAINS uint32 = 0x1
@@ -18,13 +20,23 @@ type CellDatComp struct {
 }
 
 func (ECS *ECS) AddCell(pos Vec, cellType uint32){
+	buf := tcell.CellBuffer{}
+	buf.Resize(1,1)
+	switch cellType{
+	case CELL_WATER:
+		buf.SetContent(0,0,tcell.RuneBlock, nil, tcell.StyleDefault.Foreground(tcell.ColorBlue))
+	case CELL_BEACH:
+		buf.SetContent(0,0,tcell.RuneBlock, nil, tcell.StyleDefault.Foreground(tcell.ColorBeige))
+	case CELL_PLAINS:
+		buf.SetContent(0,0,tcell.RuneBlock, nil, tcell.StyleDefault.Foreground(tcell.ColorGreen))
+	}
 	cell := &Cell{
 		Entity:     NewEntity(),
 		PosComp:    &PosComp{
 			Pos: pos,
 			Facing: V2i(0,0),
 		},
-		RenderComp: &RenderComp{Pos: pos, View: WORLD_VIEW},
+		RenderComp: &RenderComp{Depth: 0, Pos: pos, View: WORLD_VIEW, Buffer: buf},
 		CellDatComp: &CellDatComp{Type: cellType},
 	}
 	// add the cell to the systems

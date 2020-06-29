@@ -16,6 +16,7 @@ type RenderComp struct {
 	Depth int
 	Pos   Vec
 	View  uint8
+	Buffer tcell.CellBuffer
 }
 
 func (R *RendererSys) Init(ECS *ECS){
@@ -72,9 +73,17 @@ func (R *RendererSys) Update(ECS *ECS){
 		Running = false
 	}
 
-	// test render
+	// render each RenderComp
 	for _, r := range R.RenderComps{
-		R.Screen.Char('r', r.Pos, tcell.StyleDefault, r.View, r.Depth)
+		width, height := r.Buffer.Size()
+		// iterate over each cell in the cell buffer
+		for x:=0; x<width;x ++{
+			for y:=0; y<height;y ++{
+				rune, _, style, _ := r.Buffer.GetContent(x,y)
+				// draw at the offset from the RenderComp position
+				R.Screen.Char(rune, r.Pos.Add(V2i(x,y)), style, r.View, r.Depth)
+			}
+		}
 	}
 	R.Screen.Draw()
 }

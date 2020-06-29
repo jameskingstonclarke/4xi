@@ -69,6 +69,10 @@ type Entity struct {
 	ID   uint32
 }
 
+// fire an event into the ECS
+func (Entity *Entity) Event(id string, data... string){
+}
+
 func NewEntity() *Entity{
 	e := &Entity{ID: EId}
 	EId++

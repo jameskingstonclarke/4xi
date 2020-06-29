@@ -1,4 +1,27 @@
 package src
+
+import "github.com/gdamore/tcell"
+
+// window is an entity
+type Window struct {
+	*Entity
+	*RenderComp
+}
+
+func (ECS *ECS) AddWindow(depth int, pos Vec, buffer tcell.CellBuffer){
+	cell := &Cell{
+		Entity:     NewEntity(),
+		RenderComp: &RenderComp{Depth: depth, Pos: pos, Buffer: buffer, View: WORLD_VIEW},
+	}
+	// add the cell to the systems
+	for _, system := range ECS.Sys(){
+		switch s := system.(type){
+		case *RendererSys:
+			s.AddEntity(cell.Entity, cell.RenderComp)
+		}
+	}
+}
+
 //
 //import (
 //	"errors"

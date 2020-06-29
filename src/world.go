@@ -16,8 +16,8 @@ func (W *WorldSys) AddEntity(Entity *Entity, CellDatComp *CellDatComp){
 }
 
 func (W *WorldSys) Init(ECS *ECS){
-	W.Width = 10
-	W.Height = 10
+	W.Width = 200
+	W.Height = 100
 	// generate the cells
 	p := perlin.NewPerlin(2,3,5, 12345)
 	for x:=0;x<W.Width;x++{
