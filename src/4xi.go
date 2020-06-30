@@ -1,10 +1,5 @@
 package src
 
-const (
-	CLIENT = 0x0
-	HOST   = 0x1
-)
-
 type GameInterface struct {
 	Client *Client
 	Server *Server
@@ -26,7 +21,7 @@ func (G *GameInterface) Close(){
 }
 
 var (
-	Mode = HOST
+	Mode = CLIENT | SERVER
 	Running = true
 )
 

@@ -46,7 +46,7 @@ func FillBufRune(rune rune, style tcell.Style)*tcell.CellBuffer{
 	return buf
 }
 
-func (R *RendererSys) Init(ECS *ECS){
+func (R *RendererSys) Init(){
 	screen, err := tcell.NewScreen()
 	if err != nil{
 		LogErr(err)
@@ -75,7 +75,7 @@ func (R *RendererSys) Init(ECS *ECS){
 	go R.Screen.Poll()
 }
 
-func (R *RendererSys) Close(ECS *ECS){
+func (R *RendererSys) Close(){
 
 }
 
@@ -85,7 +85,7 @@ func (R *RendererSys) AddEntity(Entity *Entity, RenderComp *RenderComp){
 	R.Size++
 }
 
-func (R *RendererSys) Update(ECS *ECS){
+func (R *RendererSys) Update(){
 
 	// process camera movement
 	if InputBuffer.KeyPressed == 'a'{

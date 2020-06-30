@@ -26,7 +26,7 @@ func (MovementSys *MovementSys) Add(Entity *Entity, PosComp *PosComp, MovementCo
 	MovementSys.Size++
 }
 
-func (MovementSys *MovementSys) Update(ECS *ECS){
+func (MovementSys *MovementSys) Update(){
 	// iterate over each entity
 	for i:=0;i<MovementSys.Size;i++{
 		// get the direction between the 2 vectors

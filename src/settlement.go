@@ -52,9 +52,9 @@ func (ECS *ECS) AddSettlement(name string, pos Vec){
 	}
 }
 
-func (S *SettlementSys) Init(ECS *ECS){
-	ECS.AddSettlement("cairo", V2i(0,0))
-	ECS.AddSettlement("tokyo", V2i(20,15))
+func (S *SettlementSys) Init(){
+	S.ECS.AddSettlement("cairo", V2i(0,0))
+	S.ECS.AddSettlement("tokyo", V2i(20,15))
 }
 
 
@@ -65,12 +65,15 @@ func (S *SettlementSys) AddEntity(Entity *Entity, PosComp *PosComp, SettlementSt
 	S.Size++
 }
 
-func (S *SettlementSys) Update(ECS *ECS){
+func (S *SettlementSys) Update(){
 }
 
 func (S *SettlementSys) Remove(){
 }
 
-func (S *SettlementSys) Close(ECS *ECS){
+func (S *SettlementSys) Close(){
 
 }
+
+// listen for sync events
+func (S *SettlementSys) Listen(event SyncEvent){}

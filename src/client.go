@@ -21,10 +21,10 @@ func NewClient() *Client{
 
 	// create a client by registering all the relevant ECS systems
 	ecs := NewECS()
-	ecs.RegisterSystem(&RendererSys{SystemBase: NewSysBase()})
-	ecs.RegisterSystem(&WorldSys{SystemBase: NewSysBase()})
-	ecs.RegisterSystem(&EmpireSys{SystemBase: NewSysBase()})
-	ecs.RegisterSystem(&SettlementSys{SystemBase: NewSysBase()})
+	ecs.RegisterSystem(&RendererSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&WorldSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&EmpireSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&SettlementSys{SystemBase: NewSysBase(ecs)})
 	return &Client{
 		ECS:        ecs,
 		Connection: nil,

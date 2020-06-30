@@ -19,7 +19,7 @@ func (ECS *ECS) Init(){
 		// check if we can call Initialise on the system
 		init, ok := s.(Initialiser)
 		if ok{
-			init.Init(ECS)
+			init.Init()
 		}
 	}
 }
@@ -29,7 +29,7 @@ func (ECS *ECS) Close(){
 		// check if we can call Close on the system
 		closer, ok := s.(Closer)
 		if ok{
-			closer.Close(ECS)
+			closer.Close()
 		}
 	}
 }
@@ -46,12 +46,12 @@ func (ECS *ECS) Sys() []System{
 
 func (ECS *ECS) Update(){
 	for _, s := range ECS.Sys(){
-		s.Update(ECS)
+		s.Update()
 	}
 }
 
 func (ECS *ECS) RegisterSystem(System System){
-	// check if we can call initialise on the system
+	// check if we can prioritise the system
 	priority:=0
 	var i interface{}=System
 	pri, ok:=i.(Prioritiser)
@@ -95,18 +95,20 @@ func NewEntity() *Entity{
 }
 
 type System interface {
-	Update(ECS *ECS)
+	Update()
 	Remove()
 }
 
 type SystemBase struct {
+	ECS		 *ECS
 	Entities []*Entity
 	Size     int
 	Priority int
 }
 
-func NewSysBase() *SystemBase{
+func NewSysBase(ECS *ECS) *SystemBase{
 	return &SystemBase{
+		ECS: 	  ECS,
 		Entities: nil,
 		Size:     0,
 		Priority: 0,
@@ -118,16 +120,15 @@ type Prioritiser interface {
 }
 
 type Initialiser interface {
-	Init(ECS *ECS)
+	Init()
 }
 
 type Closer interface {
-	Close(ECS *ECS)
+	Close()
 }
 
 type Event interface {
 }
 
 type EventBase struct {
-	Entity *Entity
 }

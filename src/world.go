@@ -15,7 +15,7 @@ func (W *WorldSys) AddEntity(Entity *Entity, CellDatComp *CellDatComp){
 	W.Size++
 }
 
-func (W *WorldSys) Init(ECS *ECS){
+func (W *WorldSys) Init(){
 	W.Width = 200
 	W.Height = 100
 	// generate the cells
@@ -31,12 +31,12 @@ func (W *WorldSys) Init(ECS *ECS){
 			}else{
 				cellType = CELL_PLAINS
 			}
-			ECS.AddCell(V2i(x,y), cellType)
+			W.ECS.AddCell(V2i(x,y), cellType)
 		}
 	}
 }
 
-func (W *WorldSys) Update(ECS *ECS){
+func (W *WorldSys) Update(){
 	// process each cell here
 }
 

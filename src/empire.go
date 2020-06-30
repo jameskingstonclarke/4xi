@@ -48,8 +48,8 @@ func (ECS *ECS) AddEmpire(name string, pos Vec){
 	}
 }
 
-func (E *EmpireSys) Init(ECS *ECS){
-	ECS.AddEmpire("egypt", V2i(0,0))
+func (E *EmpireSys) Init(){
+	E.ECS.AddEmpire("egypt", V2i(0,0))
 }
 
 
@@ -60,7 +60,7 @@ func (E *EmpireSys) AddEntity(Entity *Entity, PosComp *PosComp, EmpireStatsComp 
 	E.Size++
 }
 
-func (E *EmpireSys) Update(ECS *ECS){
+func (E *EmpireSys) Update(){
 	for i:=0;i<E.Size;i++{
 	}
 }
@@ -68,7 +68,7 @@ func (E *EmpireSys) Update(ECS *ECS){
 func (E *EmpireSys) Remove(){
 }
 
-func (E *EmpireSys) Close(ECS *ECS){
+func (E *EmpireSys) Close(){
 
 }
 
