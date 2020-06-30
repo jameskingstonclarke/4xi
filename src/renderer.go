@@ -49,11 +49,11 @@ func FillBufRune(rune rune, style tcell.Style)*tcell.CellBuffer{
 func (R *RendererSys) Init(){
 	screen, err := tcell.NewScreen()
 	if err != nil{
-		LogErr(err)
+		CLogErr(err)
 	}
 	R.Screen.Screen = screen
 	if err = screen.Init(); err != nil{
-		LogErr(err)
+		CLogErr(err)
 	}
 
 	defStyle := tcell.StyleDefault.

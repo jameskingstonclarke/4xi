@@ -8,10 +8,12 @@ var (
 
 type ECS struct {
 	Systems [][]System
+	// whether the ECS is a server or client
+	HostMode uint8
 }
 
-func NewECS() *ECS{
-	return &ECS{}
+func NewECS(mode uint8) *ECS{
+	return &ECS{HostMode: mode}
 }
 
 func (ECS *ECS) Init(){
@@ -70,20 +72,7 @@ func (ECS *ECS) RegisterSystem(System System){
 func (ECS *ECS) Event(Event Event){
 	// check each system to see if it is capable of hearing the event
 	for _, s := range ECS.Sys(){
-
-
-		// TODO old version as go doesn't have method overloading :(
-		////reflect.ValueOf(s).MethodByName("Listen").Call([]reflect.Value{})
-		//method := reflect.ValueOf(s).MethodByName("Listen")
-		//valid := method.IsValid()
-		//if valid{
-		//	// check if the event matches the function type
-		//	if method.Type().In(0) == reflect.TypeOf(Event){
-		//		method.Call([]reflect.Value{reflect.ValueOf(Event)})
-		//	}
-		//}
-		//reflect.ValueOf(s).MethodByName("Listen").Call([]reflect.Value{})
-		method := reflect.ValueOf(s).MethodByName("Listen"+reflect.TypeOf(Event).String())
+		method := reflect.ValueOf(s).MethodByName("Listen"+reflect.TypeOf(Event).String()[4:])
 		valid := method.IsValid()
 		if valid{
 			method.Call([]reflect.Value{reflect.ValueOf(Event)})
@@ -111,7 +100,7 @@ type System interface {
 type SystemBase struct {
 	ECS		 *ECS
 	Entities []*Entity
-	Size     uint32
+	Size     int
 	Priority int
 }
 

@@ -62,7 +62,7 @@ func (E *EmpireSys) AddEntity(Entity *Entity, PosComp *PosComp, EmpireStatsComp 
 }
 
 func (E *EmpireSys) Update(){
-	for i:=0;i<E.Size;i++{
+	for i:=0;i<int(E.Size);i++{
 	}
 }
 

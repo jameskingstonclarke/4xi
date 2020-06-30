@@ -1,34 +1,21 @@
 package src
-
-import (
-	"bufio"
-	"fmt"
-	"net"
-)
+import "C"
 
 type Client struct {
-	ECS        *ECS
-	Connection net.Conn
+	ECS *ECS
 }
 
-
 func NewClient() *Client{
-	//conn, err := net.Dial("tcp", "localhost:"+PORT)
-	//if err != nil{
-	//	LogErr(err)
-	//}
-	//Client.Connection = conn
-
 	// create a client by registering all the relevant ECS systems
-	ecs := NewECS()
+	ecs := NewECS(CLIENT)
 	ecs.RegisterSystem(&RendererSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&WorldSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&EmpireSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&SettlementSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&PlayerSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs)})
 	return &Client{
 		ECS:        ecs,
-		Connection: nil,
 	}
 }
 
@@ -37,30 +24,10 @@ func (Client *Client) Init(){
 }
 
 // process all updatable entities
-func (Client *Client) Process(){
+func (Client *Client) Process() {
 	Client.ECS.Update()
-}
-
-func (Client *Client) SendMsg(msg string){
-	fmt.Fprintf(Client.Connection, msg+"\n")
-}
-
-// listen from a message from the server
-func (Client *Client) ListenMsg() string {
-	msg, err := bufio.NewReader(Client.Connection).ReadString('\n')
-	if err != nil {
-		LogErr(err)
-	}
-	return msg
-}
-
-// request the state of the game from the server
-// involves requesting the current turn, the map status etc
-func (Client *Client) RequestGameState(){
-
 }
 
 func (Client *Client) Close(){
 	Client.ECS.Close()
-	Client.Connection.Close()
 }

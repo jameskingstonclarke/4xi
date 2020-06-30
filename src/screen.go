@@ -37,11 +37,11 @@ var (
 func (Screen *Screen) Init(){
 	screen, err := tcell.NewScreen()
 	if err != nil{
-		LogErr(err)
+		CLogErr(err)
 	}
 	Screen.Screen = screen
 	if err = screen.Init(); err != nil{
-		LogErr(err)
+		CLogErr(err)
 	}
 
 	defStyle := tcell.StyleDefault.

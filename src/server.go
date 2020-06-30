@@ -1,63 +1,31 @@
 package src
 
-import (
-	"bufio"
-	"net"
-)
-
-// represents a game server
 type Server struct {
-	Listener net.Listener
-	Clients  map[uint8]net.Conn
-	ECS 	 *ECS
+	ECS        *ECS
 }
 
-func (Server *Server) Process(){
-	Server.ECS.Update()
-}
-
-func (Server *Server) Init(){
-	listener, err := net.Listen("tcp", "localhost:7777")
-	if err != nil{
-		LogErr(err)
-	}
-	Server.Listener = listener
-
-	Server.ECS.Init()
-}
-
-func (Server *Server) AcceptClient(){
-	conn, err := Server.Listener.Accept()
-	if err != nil{
-		LogErr(err)
-	}
-	Server.Clients[uint8(len(Server.Clients)+1)] = conn
-}
-
-func (Server *Server) BroadcastMsg(msg string){
-	for client, _ := range Server.Clients {
-		Server.SendMsg(client, msg)
+func NewServer() *Server{
+	// create a client by registering all the relevant ECS systems
+	ecs := NewECS(SERVER)
+	ecs.RegisterSystem(&WorldSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&EmpireSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&SettlementSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&PlayerSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs)})
+	return &Server{
+		ECS:        ecs,
 	}
 }
 
-// send a message to a particular client
-func (Server *Server) SendMsg(client uint8, msg string){
-	Server.Clients[client].Write([]byte(msg+"\n"))
+func (S *Server) Init(){
+	S.ECS.Init()
 }
 
-// request (listen) for a message from a particular client
-func (Server *Server) ListenMsg(client uint8) string{
-	msg, err := bufio.NewReader(Server.Clients[client]).ReadString('\n')
-	if err != nil{
-		LogErr(err)
-	}
-	return msg
+// process all updatable entities
+func (S *Server) Process(){
+	S.ECS.Update()
 }
 
-func (Server *Server) Close(){
-	Server.Listener.Close()
-	for _, c := range Server.Clients{
-		c.Close()
-	}
-	Server.ECS.Close()
+func (S *Server) Close(){
+	S.ECS.Close()
 }

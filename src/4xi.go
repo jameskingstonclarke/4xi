@@ -1,36 +1,45 @@
 package src
 
+import (
+	"sync"
+)
+
 type GameInterface struct {
-	Client *Client
 	Server *Server
+	Client *Client
 }
 
-func (G *GameInterface) Process(){
+func (G *GameInterface) ProcessServer(){
+	G.Server.Init()
+	for Running {
+		G.Server.Process()
+	}
+	G.Server.Close()
+	WaitGroup.Done()
+}
+
+func (G *GameInterface) ProcessClient(){
+	G.Client.Init()
 	for Running {
 		G.Client.Process()
 	}
-}
-
-func (G *GameInterface) Init(){
-	G.Client = NewClient()
-	G.Client.Init()
-}
-
-func (G *GameInterface) Close(){
 	G.Client.Close()
+	WaitGroup.Done()
 }
 
 var (
-	Mode = CLIENT | SERVER
 	Running = true
+	WaitGroup sync.WaitGroup
 )
 
 func Run(){
 	InitLogs()
-	Log("4xi v_a_001")
 	g := &GameInterface{}
-	g.Init()
-	g.Process()
-	g.Close()
+	g.Server = NewServer()
+	g.Client = NewClient()
+	WaitGroup.Add(2)
+	go g.ProcessServer()
+	go g.ProcessClient()
+	WaitGroup.Wait()
 	CloseLogs()
 }

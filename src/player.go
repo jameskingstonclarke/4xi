@@ -12,8 +12,9 @@ type PlayerSys struct {
 	*SystemBase
 	PlayerStatsComps []*PlayerStatsComp
 	// the current turn we are on
-	Turn uint32
-	TurnBuffer uint32
+	Turn 	   int
+	TurnBuffer int
+	Done bool
 }
 
 // player entity
@@ -56,8 +57,11 @@ func (P *PlayerSys) AddEntity(Entity *Entity, PlayerStatsComp *PlayerStatsComp){
 }
 
 func (P *PlayerSys) Update(){
-	// pretend we are the client sending a next turn command
-	P.ECS.Event(ClientCommandEvent{})
+	if P.ECS.HostMode & CLIENT != 0 && !P.Done && InputBuffer.KeyPressed == 'n'{
+		// pretend we are the client sending a next turn command
+		P.ECS.Event(ClientCommandEvent{Type: CMD_NEXT_TURN})
+		P.Done = true
+	}
 }
 
 func (P *PlayerSys) Remove(){
@@ -86,5 +90,6 @@ func (P *PlayerSys) ListenServerCommandEvent(event ServerCommandEvent){
 // TODO CLIENT SIDE
 // listen for sync event to update our state
 func (P *PlayerSys) ListenSyncEvent(event SyncEvent){
+	CLog("server sent us a sync! ", event.Turn)
 	P.Turn = event.Turn
 }
