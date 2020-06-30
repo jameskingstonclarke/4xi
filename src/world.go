@@ -37,9 +37,7 @@ func (W *WorldSys) Init(ECS *ECS){
 }
 
 func (W *WorldSys) Update(ECS *ECS){
-	if InputBuffer.KeyPressed == 'u'{
-		// update here
-	}
+	// process each cell here
 }
 
 func (W *WorldSys) Remove(){

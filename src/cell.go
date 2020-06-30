@@ -20,15 +20,14 @@ type CellDatComp struct {
 }
 
 func (ECS *ECS) AddCell(pos Vec, cellType uint32){
-	buf := tcell.CellBuffer{}
-	buf.Resize(1,1)
+	var style tcell.Style
 	switch cellType{
 	case CELL_WATER:
-		buf.SetContent(0,0,tcell.RuneBlock, nil, tcell.StyleDefault.Foreground(tcell.ColorBlue))
+		style = tcell.StyleDefault.Foreground(tcell.ColorBlue)
 	case CELL_BEACH:
-		buf.SetContent(0,0,tcell.RuneBlock, nil, tcell.StyleDefault.Foreground(tcell.ColorBeige))
+		style = tcell.StyleDefault.Foreground(tcell.ColorBeige)
 	case CELL_PLAINS:
-		buf.SetContent(0,0,tcell.RuneBlock, nil, tcell.StyleDefault.Foreground(tcell.ColorGreen))
+		style = tcell.StyleDefault.Foreground(tcell.ColorGreen)
 	}
 	cell := &Cell{
 		Entity:     NewEntity(),
@@ -36,7 +35,7 @@ func (ECS *ECS) AddCell(pos Vec, cellType uint32){
 			Pos: pos,
 			Facing: V2i(0,0),
 		},
-		RenderComp: &RenderComp{Depth: 0, Pos: pos, View: WORLD_VIEW, Buffer: buf},
+		RenderComp: &RenderComp{Depth: 0, Pos: pos, View: WORLD_VIEW, Buffer: FillBufRune(tcell.RuneBlock, style)},
 		CellDatComp: &CellDatComp{Type: cellType},
 	}
 	// add the cell to the systems

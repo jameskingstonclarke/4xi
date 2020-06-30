@@ -14,6 +14,19 @@ type Empire struct{
 	*EmpireStatsComp
 }
 
+// triggered when something should change the stats of an empire
+type EmpireStatsEvent struct {
+	EventBase
+	TargetEmpire   string
+	MoneyPerTurnDT float64
+}
+
+// component for storing empire statistics
+type EmpireStatsComp struct {
+	Name  string
+	Money float64
+}
+
 func (ECS *ECS) AddEmpire(name string, pos Vec){
 	empire := &Empire{
 		Entity:          NewEntity(),
@@ -35,18 +48,6 @@ func (ECS *ECS) AddEmpire(name string, pos Vec){
 	}
 }
 
-type GoldenAgeEvent struct {
-	EventBase
-	// the empire that achieved the golden age
-	EmpireStatsComp *EmpireStatsComp
-}
-
-// component for storing empire statistics
-type EmpireStatsComp struct {
-	Name  string
-	Money float64
-}
-
 func (E *EmpireSys) Init(ECS *ECS){
 	ECS.AddEmpire("egypt", V2i(0,0))
 }
@@ -61,10 +62,6 @@ func (E *EmpireSys) AddEntity(Entity *Entity, PosComp *PosComp, EmpireStatsComp 
 
 func (E *EmpireSys) Update(ECS *ECS){
 	for i:=0;i<E.Size;i++{
-		// trigger a golden age on this empire
-		if E.EmpireStatsComps[i].Money == 0{
-			ECS.Event(GoldenAgeEvent{EventBase{E.Entities[i]}, E.EmpireStatsComps[i]})
-		}
 	}
 }
 
@@ -73,4 +70,14 @@ func (E *EmpireSys) Remove(){
 
 func (E *EmpireSys) Close(ECS *ECS){
 
+}
+
+// listen out for when something modifies the empires stats
+func (E *EmpireSys) Listen(Event EmpireStatsEvent){
+	for _, e := range E.EmpireStatsComps{
+		if e.Name == Event.TargetEmpire{
+			// update the empire
+			e.Money += Event.MoneyPerTurnDT
+		}
+	}
 }

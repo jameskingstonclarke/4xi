@@ -8,7 +8,7 @@ type Window struct {
 	*RenderComp
 }
 
-func (ECS *ECS) AddWindow(depth int, pos Vec, buffer tcell.CellBuffer){
+func (ECS *ECS) AddWindow(depth int, pos Vec, buffer *tcell.CellBuffer){
 	cell := &Cell{
 		Entity:     NewEntity(),
 		RenderComp: &RenderComp{Depth: depth, Pos: pos, Buffer: buffer, View: WORLD_VIEW},
