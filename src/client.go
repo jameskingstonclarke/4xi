@@ -25,6 +25,7 @@ func NewClient() *Client{
 	ecs.RegisterSystem(&WorldSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&EmpireSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&SettlementSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&PlayerSys{SystemBase: NewSysBase(ecs)})
 	return &Client{
 		ECS:        ecs,
 		Connection: nil,

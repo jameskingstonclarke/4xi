@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	LogPath = "C:/Users/44778/OneDrive/Programming/GO/src/4xi/logs/logs.txt"
+	//LogPath = "C:/Users/44778/OneDrive/Programming/GO/src/4xi/logs/logs.txt"
+	LogPath = "F:/OneDrive/Programming/GO/src/4xi/logs/logs.txt"
 )
 
 var (

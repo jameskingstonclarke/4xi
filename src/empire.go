@@ -12,6 +12,7 @@ type Empire struct{
 	*Entity
 	*PosComp
 	*EmpireStatsComp
+	Turn uint32
 }
 
 // triggered when something should change the stats of an empire

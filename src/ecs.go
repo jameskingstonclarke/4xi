@@ -71,14 +71,22 @@ func (ECS *ECS) Event(Event Event){
 	// check each system to see if it is capable of hearing the event
 	for _, s := range ECS.Sys(){
 
+
+		// TODO old version as go doesn't have method overloading :(
+		////reflect.ValueOf(s).MethodByName("Listen").Call([]reflect.Value{})
+		//method := reflect.ValueOf(s).MethodByName("Listen")
+		//valid := method.IsValid()
+		//if valid{
+		//	// check if the event matches the function type
+		//	if method.Type().In(0) == reflect.TypeOf(Event){
+		//		method.Call([]reflect.Value{reflect.ValueOf(Event)})
+		//	}
+		//}
 		//reflect.ValueOf(s).MethodByName("Listen").Call([]reflect.Value{})
-		method := reflect.ValueOf(s).MethodByName("Listen")
+		method := reflect.ValueOf(s).MethodByName("Listen"+reflect.TypeOf(Event).String())
 		valid := method.IsValid()
 		if valid{
-			// check if the event matches the function type
-			if method.Type().In(0) == reflect.TypeOf(Event){
-				method.Call([]reflect.Value{reflect.ValueOf(Event)})
-			}
+			method.Call([]reflect.Value{reflect.ValueOf(Event)})
 		}
 	}
 }
@@ -95,6 +103,7 @@ func NewEntity() *Entity{
 }
 
 type System interface {
+	// update called every frame
 	Update()
 	Remove()
 }
@@ -102,7 +111,7 @@ type System interface {
 type SystemBase struct {
 	ECS		 *ECS
 	Entities []*Entity
-	Size     int
+	Size     uint32
 	Priority int
 }
 
