@@ -5,7 +5,7 @@ type Client struct {
 	ECS *ECS
 }
 
-func NewClient() *Client{
+func NewClient(addr string) *Client{
 	// create a client by registering all the relevant ECS systems
 	ecs := NewECS(CLIENT)
 	ecs.RegisterSystem(&RendererSys{SystemBase: NewSysBase(ecs)})
@@ -13,7 +13,7 @@ func NewClient() *Client{
 	ecs.RegisterSystem(&EmpireSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&SettlementSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&PlayerSys{SystemBase: NewSysBase(ecs)})
-	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs), ServerAddress: addr})
 	return &Client{
 		ECS:        ecs,
 	}

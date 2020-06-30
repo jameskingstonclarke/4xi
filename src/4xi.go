@@ -1,7 +1,16 @@
 package src
 
 import (
+	"bufio"
+	"fmt"
+	"os"
+	"strings"
 	"sync"
+)
+
+var (
+	Game *GameInterface
+	Username = "default"
 )
 
 type GameInterface struct {
@@ -32,14 +41,66 @@ var (
 	WaitGroup sync.WaitGroup
 )
 
-func Run(){
-	InitLogs()
-	g := &GameInterface{}
-	g.Server = NewServer()
-	g.Client = NewClient()
+func Singleplayer(){
 	WaitGroup.Add(2)
-	go g.ProcessServer()
-	go g.ProcessClient()
+	Game.Server = NewServer()
+	Game.Client = NewClient("localhost")
+	go Game.ProcessServer()
+	go Game.ProcessClient()
+}
+
+func Host(){
+	WaitGroup.Add(2)
+	Game.Server = NewServer()
+	Game.Client = NewClient("localhost")
+	go Game.ProcessServer()
+	go Game.ProcessClient()
+}
+
+func Connect(){
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Enter server address:")
+	addr, err := reader.ReadString('\n')
+	if err != nil{
+		CLog(err)
+	}
+
+
+	WaitGroup.Add(1)
+	Game.Client = NewClient(strings.TrimSpace(addr))
+	go Game.ProcessClient()
+}
+
+func Run(){
+
+	InitLogs()
+	Game = &GameInterface{}
+
+
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Enter username:")
+	username, err := reader.ReadString('\n')
+	if err != nil{
+		CLog(err)
+	}
+	Username = strings.TrimSpace(username)
+
+	fmt.Println("singleplayer [0], host game [1], connect to game [2]:")
+	choice, err := reader.ReadString('\n')
+	if err != nil{
+		CLog(err)
+	}
+	switch strings.TrimSpace(choice){
+	case "0":
+		Singleplayer()
+	case "1":
+		Host()
+	case "2":
+		Connect()
+	}
+
 	WaitGroup.Wait()
 	CloseLogs()
 }

@@ -49,7 +49,6 @@ func (P *PlayerSys) Init(){
 	P.ECS.AddPlayer("james")
 }
 
-
 func (P *PlayerSys) AddEntity(Entity *Entity, PlayerStatsComp *PlayerStatsComp){
 	P.Entities = append(P.Entities, Entity)
 	P.PlayerStatsComps = append(P.PlayerStatsComps, PlayerStatsComp)

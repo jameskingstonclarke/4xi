@@ -21,6 +21,8 @@ type NetworkSys struct {
 	// connections to clients (used if we are a server)
 	Listener          net.Listener
 	ClientConnections []net.Conn
+	// address of the server to connect to
+	ServerAddress	  string
 }
 
 type NetworkComp struct {
@@ -56,8 +58,8 @@ func (N *NetworkSys) Init(){
 	// if we are the server listen for client commands via client connections. Once we
 	// have received all commands, send a message to the clients to trigger a sync event.
 	if N.ECS.HostMode & CLIENT != 0{
-		CLog("client attempting to connect ", "localhost"+PORT)
-		conn, err := net.Dial("tcp", "localhost"+PORT)
+		CLog("client attempting to connect ", N.ServerAddress+PORT)
+		conn, err := net.Dial("tcp", N.ServerAddress+PORT)
 		if err != nil{
 			CLogErr(err)
 		}
@@ -86,6 +88,12 @@ func (N *NetworkSys) Init(){
 func (N *NetworkSys) Update(){}
 func (N *NetworkSys) Remove(){}
 func (N *NetworkSys) Close(){}
+
+// the network code must be ran AFTER every other system has updated their state.
+// this allows the server to queue up the changes, and then send them across the network
+func (N *NetworkSys) Priority() int {
+	return 1
+}
 
 
 // TODO SERVER
@@ -124,7 +132,7 @@ func (N *NetworkSys) ListenClientCommandEvent(event ClientCommandEvent){
 }
 
 // TODO CLIENT
-// listen for sync messages from the server connection, once we recieve a sync over the network
+// listen for sync messages from the server connection, once we receive a sync over the network
 // dispatch the sync locally
 func (N *NetworkSys) ListenForServerSync(){
 	// create a temp buffer for the sync events
