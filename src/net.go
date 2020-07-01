@@ -45,6 +45,7 @@ type ClientCommandEvent struct{
 type SyncEvent struct {
 	EventBase
 	// TODO perhaps the sync event could store a list of sync-actions, and each system uses the sync action
+	// or should be just serialise the entire ECS
 	SyncActions []SyncAction
 	Turn int
 }
@@ -73,14 +74,7 @@ func (N *NetworkSys) Init(){
 			SLogErr(err)
 		}
 		N.Listener = listener
-		// TODO put this in a go routine
-		client, err := N.Listener.Accept()
-		if err != nil{
-			SLogErr(err)
-		}
-		N.ClientConnections = append(N.ClientConnections, client)
-
-
+		go N.ListenForClientConnections()
 		// start listening for client commands
 		go N.ListenForClientCommands()
 	}
@@ -95,6 +89,19 @@ func (N *NetworkSys) Priority() int {
 	return 1
 }
 
+
+// TODO SERVER
+// listen for client connections. this runs throughout the lifetime of the application
+func (N *NetworkSys) ListenForClientConnections(){
+	for Running{
+		client, err := N.Listener.Accept()
+		if err != nil{
+			SLogErr(err)
+		}
+		N.ClientConnections = append(N.ClientConnections, client)
+		SLog("client connected from ", client.RemoteAddr())
+	}
+}
 
 // TODO SERVER
 // listen for when the server has done processing and is ready to sync
