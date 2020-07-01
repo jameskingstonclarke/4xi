@@ -1,8 +1,7 @@
 package src
 
 import (
-	"bytes"
-	"encoding/gob"
+	"encoding/json"
 	"net"
 )
 
@@ -130,66 +129,56 @@ func (N *NetworkSys) PollClientConnections(){
 
 // TODO SERVER
 // listen for when the server has done processing and is ready to sync
-func (N *NetworkSys) ListenServerCommandEvent(event ServerCommandEvent){
-	if event.Side == SERVER && event.Type == SERVER_CMD_SYNC {
+func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
+	if command.Side == SERVER && command.Type == SERVER_CMD_SYNC {
+		// TODO fix this
+		//syncEvent := SyncEvent{
+		//	EventBase:     EventBase{},
+		//	DirtyEntities: nil,
+		//}
+		//// store all the entities that need synchronizing in the SyncEvent
+		//// iterate over each entity that needs to be synced
+		//for i := 0; i < N.Size; i++ {
+		//	// if the entity is dirty (it has been changed), it needs synchronizing
+		//	if N.SyncComps[i].Dirty {
+		//		// clear the dirty flag ready for the next check
+		//		// if we didn't clear it, every frame the server would attempt to sync the entity
+		//		N.SyncComps[i].Dirty = false
+		//		// serialize the entity
+		//		serial := N.ECS.SerializeEntity(N.Entities[i].ID)
+		//		SLog(serial)
+		//	}
+		//}
+		//SLog(syncEvent)
+		// we want to send a sync command over the network to all clients
+		newCommand := ServerCommandEvent{
+			Type: SERVER_CMD_SYNC,
+			Side: SERVER,
+			Data: nil,
+		}
 		// send out a sync to all clients
 		for _, client := range N.ClientConnections {
-			// TODO fix this
-			//syncEvent := SyncEvent{
-			//	EventBase:     EventBase{},
-			//	DirtyEntities: nil,
-			//}
-			//// store all the entities that need synchronizing in the SyncEvent
-			//// iterate over each entity that needs to be synced
-			//for i := 0; i < N.Size; i++ {
-			//	// if the entity is dirty (it has been changed), it needs synchronizing
-			//	if N.SyncComps[i].Dirty {
-			//		// clear the dirty flag ready for the next check
-			//		// if we didn't clear it, every frame the server would attempt to sync the entity
-			//		N.SyncComps[i].Dirty = false
-			//		// serialize the entity
-			//		serial := N.ECS.SerializeEntity(N.Entities[i].ID)
-			//		SLog(serial)
-			//	}
-			//}
-			//SLog(syncEvent)
-			// we want to send a sync command over the network to all clients
-			command := ServerCommandEvent{
-				Type: SERVER_CMD_SYNC,
-				Side: SERVER,
-				Data: nil,
+			encoder := json.NewEncoder(client)
+			err := encoder.Encode(newCommand)
+			if err != nil{
+				SLog(err)
 			}
-			// send the sync event over the network
-			// create a buffer for the event
-			buf := new(bytes.Buffer)
-			// create an encoder object
-			gobobj := gob.NewEncoder(buf)
-			// write the event to the buffer (new sync event)
-			gobobj.Encode(command)
-			// send the event to the server
-			client.Write(buf.Bytes())
 		}
+		SLog("sent sync command to clients ")
 	}
 }
 
 // TODO CLIENT
 // listen for systems to send commands to the server
 // recieve the command, and send it over the connection to the server
-func (N *NetworkSys) ListenClientCommandEvent(event ClientCommandEvent){
-	if event.Side == CLIENT {
-		// send the command event over the network
-		// create a buffer for the event
-		buf := new(bytes.Buffer)
-		// create an encoder object
-		gobobj := gob.NewEncoder(buf)
-		// write the event to the buffer
-		gobobj.Encode(event)
-		// send the event to the server
-		_, err := N.ServerConnection.Write(buf.Bytes())
+func (N *NetworkSys) ListenClientCommandEvent(command ClientCommandEvent){
+	if command.Side == CLIENT {
+		encoder := json.NewEncoder(N.ServerConnection)
+		err := encoder.Encode(command)
 		if err != nil {
 			CLogErr(err)
 		}
-		CLog("sent command ", event, " to server")
+		CLog("sent command ", command, " to server")
 	}
 }
 
@@ -197,22 +186,18 @@ func (N *NetworkSys) ListenClientCommandEvent(event ClientCommandEvent){
 // listen for sync messages from the server connection, once we receive a sync over the network
 // dispatch the sync locally
 func (N *NetworkSys) PollServerCommands(){
-	// create a temp buffer for the sync events
-	tmp := make([]byte, 500)
 	for {
-		N.ServerConnection.Read(tmp)
-		// convert bytes into Buffer
-		tmpbuff := bytes.NewBuffer(tmp)
-		// TODO for some reason we are losing the command type
-		command := ServerCommandEvent{}
-		// creates a decoder object
-		gobobj := gob.NewDecoder(tmpbuff)
-		// decodes the buffer into the SynEvent struct
-		gobobj.Decode(command)
+		// create a decoder to listen for server commands
+		decoder := json.NewDecoder(N.ServerConnection)
+		var command ServerCommandEvent
+		// decode the response
+		err := decoder.Decode(&command)
+		if err != nil{
+			CLog(err)
+		}
 		CLog("received command from the server ", command)
 		// indicate that the command is now client side
 		command.Side = CLIENT
-		// finally broadcast the server command so systems can react
 		N.ECS.Event(command)
 	}
 }
@@ -227,19 +212,18 @@ func (N *NetworkSys) PollClientCommands(){
 			client := N.ClientConnections[nextClient]
 			nextClient++
 			go func() {
-				tmp := make([]byte, 500)
 				for Running {
-					client.Read(tmp)
-					// convert bytes into Buffer
-					tmpbuff := bytes.NewBuffer(tmp)
-					command := ClientCommandEvent{}
-					// creates a decoder object
-					gobobj := gob.NewDecoder(tmpbuff)
+					// create a decoder to receive the command
+					decoder := json.NewDecoder(client)
+					var command ClientCommandEvent
+					// decode the response
+					err := decoder.Decode(&command)
+					if err != nil{
+						CLog(err)
+					}
 					SLog("received command from client ", command)
 					// indicate that the command is now server side
 					command.Side = SERVER
-					// decodes the buffer into the CommandEvent struct
-					gobobj.Decode(command)
 					N.ECS.Event(command)
 				}
 			}()
