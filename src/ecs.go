@@ -1,6 +1,10 @@
 package src
 
-import "reflect"
+import (
+	"bytes"
+	"encoding/json"
+	"reflect"
+)
 
 var (
 	EId uint32 = 0
@@ -8,12 +12,62 @@ var (
 
 type ECS struct {
 	Systems [][]System
+	// store a reference to each entity
+	Entities []*Entity
+	// store a reference to the components attached to the entity (linearly added)
+	Components []Component
+	// used as an index lookup to find the position of the first component of the particular entity
+	EntityComponentLookup map[uint32]uint32
 	// whether the ECS is a server or client
 	HostMode uint8
 }
 
 func NewECS(mode uint8) *ECS{
-	return &ECS{HostMode: mode}
+	return &ECS{HostMode: mode, EntityComponentLookup: make(map[uint32]uint32)}
+}
+
+// add an entity to the system. this is useful for querying components
+// this is likely only used to know which components an entity has
+func (ECS *ECS) AddEntity(Entity *Entity, components... Component){
+	ECS.Entities = append(ECS.Entities, Entity)
+	// set a marker for the component lookup index
+	ECS.EntityComponentLookup[Entity.ID] = uint32(len(ECS.Components))
+	// TODO this may be wrong, as we might not actually add all the components in this function???
+	Entity.ComponentCount = uint32(len(components))
+	for _, component := range components{
+		ECS.Components = append(ECS.Components, component)
+	}
+}
+
+// serialize an entity by serializing each component
+func (ECS *ECS) SerializeEntity(id uint32) []byte{
+	components:=ECS.GetEntityComponents(id)
+	buf := new(bytes.Buffer)
+	//buf.Write([]byte(id))
+	for _, comp := range components{
+		bytes, err := json.Marshal(comp)
+		if err != nil{
+			SLogErr(err)
+		}
+		buf.Write(bytes)
+	}
+	return buf.Bytes()
+}
+
+// get all the components attached to a particular entity
+// this is likely only used for serialization and de-serialization as the only accessable data this will return
+// is the ability to call Serialize() and Deserialize()
+func (ECS *ECS) GetEntityComponents(id uint32) []Component{
+	// we can just use the id as an index as the id's are incremental
+	entity := ECS.Entities[id]
+	// get the marker for the first component
+	marker := ECS.EntityComponentLookup[id]
+	var components []Component
+	for i:=0;i<int(entity.ComponentCount);i++{
+		// use the marker as the offset, and then we just increase by 1 for each component
+		components = append(components, ECS.Components[int(marker)+i])
+	}
+	return components
 }
 
 func (ECS *ECS) Init(){
@@ -82,7 +136,9 @@ func (ECS *ECS) Event(Event Event){
 
 type Entity struct {
 	// Unique id for this entity
-	ID   uint32
+	ID   		   uint32
+	// used as a util for the ECS
+	ComponentCount uint32
 }
 
 func NewEntity() *Entity{
@@ -123,6 +179,10 @@ type Initialiser interface {
 
 type Closer interface {
 	Close()
+}
+
+type Component interface {
+	//Serialize() []byte
 }
 
 type Event interface {

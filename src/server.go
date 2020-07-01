@@ -7,11 +7,11 @@ type Server struct {
 func NewServer() *Server{
 	// create a client by registering all the relevant ECS systems
 	ecs := NewECS(SERVER)
+	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&PlayerSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&WorldSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&EmpireSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&SettlementSys{SystemBase: NewSysBase(ecs)})
-	ecs.RegisterSystem(&PlayerSys{SystemBase: NewSysBase(ecs)})
-	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs)})
 	return &Server{
 		ECS:        ecs,
 	}

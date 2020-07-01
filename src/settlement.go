@@ -14,11 +14,11 @@ type SettlementSys struct {
 // empire entity
 type Settlement struct{
 	*Entity
+	*SyncComp
 	*PosComp
 	*SettlementStatsComp
 	*RenderComp
 }
-
 
 // component for storing empire statistics
 type SettlementStatsComp struct {
@@ -44,6 +44,8 @@ func (ECS *ECS) AddSettlement(name string, pos Vec){
 	// add the cell to the systems
 	for _, system := range ECS.Sys(){
 		switch s := system.(type){
+		case *NetworkSys:
+			s.AddEntity(settlement.Entity, settlement.SyncComp)
 		case *SettlementSys:
 			s.AddEntity(settlement.Entity, settlement.PosComp, settlement.SettlementStatsComp)
 		case *RendererSys:
