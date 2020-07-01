@@ -138,17 +138,18 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 		//}
 		//// store all the entities that need synchronizing in the SyncEvent
 		//// iterate over each entity that needs to be synced
-		//for i := 0; i < N.Size; i++ {
-		//	// if the entity is dirty (it has been changed), it needs synchronizing
-		//	if N.SyncComps[i].Dirty {
-		//		// clear the dirty flag ready for the next check
-		//		// if we didn't clear it, every frame the server would attempt to sync the entity
-		//		N.SyncComps[i].Dirty = false
-		//		// serialize the entity
-		//		serial := N.ECS.SerializeEntity(N.Entities[i].ID)
-		//		SLog(serial)
-		//	}
-		//}
+		for i := 0; i < N.Size; i++ {
+			SLog("checking entity...")
+			// if the entity is dirty (it has been changed), it needs synchronizing
+			if N.SyncComps[i].Dirty {
+				// clear the dirty flag ready for the next check
+				// if we didn't clear it, every frame the server would attempt to sync the entity
+				N.SyncComps[i].Dirty = false
+				// serialize the entity
+				serial := N.ECS.SerializeEntity(N.Entities[i].ID)
+				SLog(serial)
+			}
+		}
 		//SLog(syncEvent)
 		// we want to send a sync command over the network to all clients
 		newCommand := ServerCommandEvent{

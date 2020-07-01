@@ -33,6 +33,7 @@ func (ECS *ECS) AddSettlement(name string, pos Vec){
 
 	settlement := &Settlement{
 		Entity:          NewEntity(),
+		SyncComp: &SyncComp{Dirty: false},
 		PosComp:         &PosComp{
 			Pos: pos,
 			Facing: V2i(0,0),
@@ -41,6 +42,9 @@ func (ECS *ECS) AddSettlement(name string, pos Vec){
 		// we have to adjust the position so the rune is the position of the settlement
 		RenderComp: &RenderComp{Depth: 0, Pos: pos.Sub(V2i(len(name)/2, 1)), View: WORLD_VIEW, Buffer: b},
 	}
+
+	ECS.AddEntity(settlement.Entity, settlement.SyncComp, settlement.PosComp, settlement.SettlementStatsComp, settlement.RenderComp)
+
 	// add the cell to the systems
 	for _, system := range ECS.Sys(){
 		switch s := system.(type){

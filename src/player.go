@@ -73,6 +73,7 @@ func (P *PlayerSys) Update(){
 
 	// used for testing so we can set the dirty flag on the SyncComp
 	if P.ECS.HostMode & CLIENT != 0 && InputBuffer.KeyPressed == 'p'{
+		CLog("dirty!")
 		P.SyncComps[0].Dirty = true
 	}
 }
