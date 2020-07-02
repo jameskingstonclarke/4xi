@@ -5,6 +5,8 @@ package src
 type PosComp struct {
 	Pos    Vec
 	Facing Vec
+	// world or screen
+	View   uint8
 }
 
 type MovementComp struct{
@@ -26,6 +28,7 @@ func (MovementSys *MovementSys) Add(Entity *Entity, PosComp *PosComp, MovementCo
 	MovementSys.Size++
 }
 
+// TODO fix this, we only want to apply the movement on a next turn event
 func (MovementSys *MovementSys) Update(){
 	// iterate over each entity
 	for i:=0;i<MovementSys.Size;i++{

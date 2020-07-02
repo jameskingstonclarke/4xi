@@ -4,23 +4,43 @@ import (
 	"github.com/gdamore/tcell"
 )
 
+const (
+	PRESS = 0x0
+	HELD  = 0x1
+
+	CELL_DEPTH 		 = 0x0
+	STRUCTURES_DEPTH = 0x1
+	UNITS_DEPTH 	 = 0x2
+	UI_DEPTH    	 = 0x3
+)
+
 func Buf(width, height int) *tcell.CellBuffer {
 	b := &tcell.CellBuffer{}
 	b.Resize(width, height)
 	return b
 }
 
+type ClickEvent struct{
+	EventBase
+	Button      rune
+	ScreenPos   Vec
+	WorldPos    Vec
+	Layer uint32
+	Type  uint8
+}
+
+
 // renderer is a system
 type RendererSys struct {
 	*SystemBase
+	PosComps    []*PosComp
 	RenderComps []*RenderComp
-	Screen Screen
+	Screen *Screen
+	Clicked tcell.ButtonMask
 }
 
 type RenderComp struct {
 	Depth int
-	Pos   Vec
-	View  uint8
 	Buffer *tcell.CellBuffer
 }
 
@@ -46,69 +66,50 @@ func FillBufRune(rune rune, style tcell.Style)*tcell.CellBuffer{
 	return buf
 }
 
-func (R *RendererSys) Init(){
-	screen, err := tcell.NewScreen()
-	if err != nil{
-		CLogErr(err)
-	}
-	R.Screen.Screen = screen
-	if err = screen.Init(); err != nil{
-		CLogErr(err)
-	}
+func (R *RendererSys) Init(){}
+func (R *RendererSys) Close(){}
 
-	defStyle := tcell.StyleDefault.
-		Background(tcell.ColorBlack).
-		Foreground(tcell.ColorWhite)
-	screen.SetStyle(defStyle)
-	screen.EnableMouse()
-	screen.Clear()
-
-	R.Screen.Width = DEFAULT_WIDTH
-	R.Screen.Height = DEFAULT_HEIGHT
-	R.Screen.Resize()
-	R.Screen.ZBuffer = make([]tcell.CellBuffer, 3)
-	for i:=0; i<Z_DEPTH; i++ {
-		R.Screen.ZBuffer[i] = tcell.CellBuffer{}
-		R.Screen.ZBuffer[i].Resize(R.Screen.Width, R.Screen.Height)
-	}
-
-	go R.Screen.Poll()
-}
-
-func (R *RendererSys) Close(){
-
-}
-
-func (R *RendererSys) AddEntity(Entity *Entity, RenderComp *RenderComp){
+func (R *RendererSys) AddEntity(Entity *Entity, RenderComp *RenderComp, PosComp *PosComp){
 	R.Entities = append(R.Entities, Entity)
 	R.RenderComps = append(R.RenderComps, RenderComp)
+	R.PosComps = append(R.PosComps, PosComp)
 	R.Size++
 }
 
 func (R *RendererSys) Update(){
+	if InputBuffer.MousePressed != 0 {
+		CLog("click layer: ", InputBuffer.MouseDepth)
+		R.ECS.Event(ClickEvent{
+			Button:	   InputBuffer.MousePressed,
+			ScreenPos: InputBuffer.MousePos,
+			WorldPos:  R.Screen.ScreenToWorld(InputBuffer.MousePos),
+			Layer:     InputBuffer.MouseDepth,
+		})
+	}
 
 	// process camera movement
-	if InputBuffer.KeyPressed == 'a'{
+	if InputBuffer.KeyHeld == 'a'{
 		R.Screen.Cam = R.Screen.Cam.Add(V2(1,0))
-	}else if InputBuffer.KeyPressed == 'd'{
+	}else if InputBuffer.KeyHeld == 'd'{
 		R.Screen.Cam = R.Screen.Cam.Add(V2(-1,0))
-	}else if InputBuffer.KeyPressed == 'w'{
+	}else if InputBuffer.KeyHeld == 'w'{
 		R.Screen.Cam = R.Screen.Cam.Add(V2(0,1))
-	}else if InputBuffer.KeyPressed == 's'{
+	}else if InputBuffer.KeyHeld == 's'{
 		R.Screen.Cam = R.Screen.Cam.Add(V2(0,-1))
 	}else if InputBuffer.CtrlKeyPressed == tcell.KeyEscape{
 		Running = false
 	}
 
 	// render each RenderComp
-	for _, r := range R.RenderComps{
+	for i:=0; i<R.Size; i++{
+		r := R.RenderComps[i]
 		width, height := r.Buffer.Size()
 		// iterate over each cell in the cell buffer
 		for x:=0; x<width;x ++{
 			for y:=0; y<height;y ++{
 				rune, _, style, _ := r.Buffer.GetContent(x,y)
 				// draw at the offset from the RenderComp position
-				R.Screen.Char(rune, r.Pos.Add(V2i(x,y)), style, r.View, r.Depth)
+				R.Screen.Char(rune, R.PosComps[i].Pos.Add(V2i(x,y)), style, R.PosComps[i].View, r.Depth)
 			}
 		}
 	}

@@ -1,17 +1,21 @@
 package src
 
 import (
+	"fmt"
 	"github.com/aquilax/go-perlin"
 )
 
 type WorldSys struct {
 	*SystemBase
 	CellDatComps []*CellDatComp
+	// position of cells
+	PosComps     []*PosComp
 	Width, Height int
 }
-func (W *WorldSys) AddEntity(Entity *Entity, CellDatComp *CellDatComp){
+func (W *WorldSys) AddEntity(Entity *Entity, CellDatComp *CellDatComp, PosComp *PosComp){
 	W.Entities = append(W.Entities, Entity)
 	W.CellDatComps = append(W.CellDatComps, CellDatComp)
+	W.PosComps = append(W.PosComps, PosComp)
 	W.Size++
 }
 
@@ -46,4 +50,18 @@ func (W *WorldSys) Remove(){
 // low priority as we want to render last
 func (W *WorldSys) Priority() int {
 	return 0
+}
+
+func (W *WorldSys) ListenClickEvent(event ClickEvent){
+	if event.Layer == CELL_DEPTH && event.Type == PRESS {
+		for i := 0; i < W.Size; i++ {
+			if event.WorldPos.Equals(W.PosComps[i].Pos) {
+				W.ECS.Event(NewWinEvent{
+					ID:    fmt.Sprintf("cell: %f, %f", event.WorldPos.X, event.WorldPos.Y),
+					Title: fmt.Sprintf("cell: %f, %f", event.WorldPos.X, event.WorldPos.Y),
+					Text: []string{fmt.Sprintf("cell type %d", W.CellDatComps[i].Type)},
+				})
+			}
+		}
+	}
 }

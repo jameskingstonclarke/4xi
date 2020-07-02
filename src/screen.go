@@ -3,6 +3,7 @@ package src
 import (
 	"github.com/gdamore/tcell"
 	"os"
+	"sync"
 )
 
 const (
@@ -12,12 +13,17 @@ const (
 	WORLD_VIEW     = 0x0
 	SCREEN_VIEW    = 0x1
 
-	Z_DEPTH        = 0x3
+	Z_DEPTH        = 0x4
 )
 
 type InputData struct {
-	MousePressed   tcell.ButtonMask
+	MouseDepth     uint32
+	MousePressed   rune
+	MouseHeld      rune
+	PrevMouse      rune
 	KeyPressed     rune
+	KeyHeld        rune
+	PrevKey        rune
 	// used for special key presses e.g. ctrl + c
 	CtrlKeyPressed tcell.Key
 	MousePos       Vec
@@ -31,6 +37,7 @@ type Screen struct {
 }
 
 var (
+	ScreenMutex  = sync.Mutex{}
 	InputBuffer = InputData{}
 )
 
@@ -54,10 +61,20 @@ func (Screen *Screen) Init(){
 	Screen.Width = DEFAULT_WIDTH
 	Screen.Height = DEFAULT_HEIGHT
 	Screen.Resize()
-	Screen.ZBuffer = make([]tcell.CellBuffer, 3)
+	Screen.ZBuffer = make([]tcell.CellBuffer, Z_DEPTH)
 	for i:=0; i<Z_DEPTH; i++ {
 		Screen.ZBuffer[i] = tcell.CellBuffer{}
 		Screen.ZBuffer[i].Resize(Screen.Width, Screen.Height)
+	}
+	InputBuffer = InputData{
+		MousePressed:   0,
+		MouseHeld:      0,
+		PrevMouse:      -1,
+		KeyPressed:     0,
+		KeyHeld:        0,
+		PrevKey:        -1,
+		CtrlKeyPressed: 0,
+		MousePos:       Vec{},
 	}
 }
 
@@ -108,12 +125,15 @@ func (Screen *Screen) Rect(r rune, pos Vec, width, height int, style tcell.Style
 }
 
 func (Screen *Screen) Draw(){
-	InputBuffer = InputData{
-		MousePressed:   0,
-		KeyPressed:     0,
-		CtrlKeyPressed: 0,
-		MousePos:       InputBuffer.MousePos,
-	}
+	ScreenMutex.Lock()
+
+	// reset what button was pressed
+	InputBuffer.MousePressed = 0
+	InputBuffer.KeyPressed=0
+	// TODO fix screen key holding
+	InputBuffer.KeyHeld=0
+
+
 	for y := 0; y < Screen.Height; y++ {
 		for x := 0; x < Screen.Width; x++ {
 			for i:=0; i<Z_DEPTH;i++ {
@@ -132,15 +152,36 @@ func (Screen *Screen) Draw(){
 		Screen.ZBuffer[i] = tcell.CellBuffer{}
 		Screen.ZBuffer[i].Resize(Screen.Width, Screen.Height)
 	}
+	ScreenMutex.Unlock()
+}
+
+func (Screen *Screen) CalculateMouseDepth() uint32{
+	var depth uint32 = 0
+	// go through the screen buffers at the position of the mouse to see what is being drawn
+	for i:=0;i<Z_DEPTH;i++{
+		rune, _, _, _ := Screen.ZBuffer[i].GetContent(int(InputBuffer.MousePos.X), int(InputBuffer.MousePos.Y))
+		// if the layer contains a rune at the position we requested, then set the depth to that layer
+		if rune != ' '{
+			depth = uint32(i)
+		}
+	}
+	return depth
 }
 
 func (Screen *Screen) Poll() {
 	for Running {
 		ev := Screen.Screen.PollEvent()
+		ScreenMutex.Lock()
 		switch ev := ev.(type){
 		case *tcell.EventKey:
 			if ev.Key() == tcell.KeyRune{
-				InputBuffer.KeyPressed = ev.Rune()
+				key := ev.Rune()
+				InputBuffer.PrevKey = InputBuffer.KeyHeld
+				InputBuffer.KeyHeld = key
+				// if we are pressing a different key, do a key press
+				if InputBuffer.KeyHeld != InputBuffer.PrevKey{
+					InputBuffer.KeyPressed = key
+				}
 			}else if ev.Key() == tcell.KeyEscape{
 				os.Exit(2)
 			}else {
@@ -148,15 +189,33 @@ func (Screen *Screen) Poll() {
 			}
 			break
 		case *tcell.EventMouse:
-			InputBuffer.MousePressed = ev.Buttons()
+			switch ev.Buttons(){
+			// mouse released, we set the button pressed to what was being held down
+			case tcell.ButtonNone:
+				// if we are actually holding the mouse down, then its a valid click release
+				if InputBuffer.MouseHeld != 0 {
+					InputBuffer.MousePressed = InputBuffer.MouseHeld
+					// reset the mouse held
+					InputBuffer.MouseHeld = 0
+				}
+			// if we are holding each button then set it to that
+			case tcell.Button1:
+				InputBuffer.MouseHeld = '1'
+			case tcell.Button2:
+				InputBuffer.MouseHeld = '2'
+			}
+
+			// update the mouse position every mouse event
 			x, y := ev.Position()
 			InputBuffer.MousePos = V2i(x, y)
+			InputBuffer.MouseDepth = Screen.CalculateMouseDepth()
 			break
 		case *tcell.EventResize:
 			Screen.Width, Screen.Height = ev.Size()
 			Screen.Resize()
 			break
 		}
+		ScreenMutex.Unlock()
 	}
 }
 

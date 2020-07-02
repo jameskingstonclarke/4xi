@@ -8,7 +8,7 @@ type Unit struct {
 	*RenderComp
 }
 
-func (ECS *ECS) AddUnit(){
+func (ECS *ECS) AddUnit() uint32{
 	unit := &Unit{
 		Entity:          NewEntity(),
 	}
@@ -21,5 +21,6 @@ func (ECS *ECS) AddUnit(){
 			s.AddEntity(unit.Entity, unit.SyncComp)
 		}
 	}
+	return unit.ID
 }
 

@@ -21,30 +21,35 @@ type CellDatComp struct {
 
 func (ECS *ECS) AddCell(pos Vec, cellType uint32){
 	var style tcell.Style
+	var yield rune
 	switch cellType{
 	case CELL_WATER:
-		style = tcell.StyleDefault.Foreground(tcell.ColorBlue)
+		style = tcell.StyleDefault.Background(tcell.ColorBlue)
+		yield = '0'
 	case CELL_BEACH:
-		style = tcell.StyleDefault.Foreground(tcell.ColorBeige)
+		style = tcell.StyleDefault.Background(tcell.ColorBeige)
+		yield = '1'
 	case CELL_PLAINS:
-		style = tcell.StyleDefault.Foreground(tcell.ColorGreen)
+		style = tcell.StyleDefault.Background(tcell.ColorGreen)
+		yield = '2'
 	}
 	cell := &Cell{
 		Entity:     NewEntity(),
 		PosComp:    &PosComp{
 			Pos: pos,
 			Facing: V2i(0,0),
+			View: WORLD_VIEW,
 		},
-		RenderComp: &RenderComp{Depth: 0, Pos: pos, View: WORLD_VIEW, Buffer: FillBufRune(tcell.RuneBlock, style)},
+		RenderComp: &RenderComp{Depth: CELL_DEPTH, Buffer: FillBufRune(yield, style)},//FillBufRune(tcell.RuneBlock, style)},
 		CellDatComp: &CellDatComp{Type: cellType},
 	}
 	// add the cell to the systems
 	for _, system := range ECS.Sys(){
 		switch s := system.(type){
 		case *RendererSys:
-			s.AddEntity(cell.Entity, cell.RenderComp)
+			s.AddEntity(cell.Entity, cell.RenderComp, cell.PosComp)
 		case *WorldSys:
-			s.AddEntity(cell.Entity, cell.CellDatComp)
+			s.AddEntity(cell.Entity, cell.CellDatComp, cell.PosComp)
 		}
 	}
 }

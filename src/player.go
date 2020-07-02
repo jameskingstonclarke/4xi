@@ -1,5 +1,8 @@
 package src
 
+// TODO some of this logic such as turn etc should be in a GameEntity / GameSys
+
+
 // used by the server to tell the networks to dispatch a sync event as we have
 // moved onto the next turn
 // (syncs happen every turn)
@@ -31,7 +34,7 @@ type PlayerStatsComp struct {
 	Name  string
 }
 
-func (ECS *ECS) AddPlayer(name string){
+func (ECS *ECS) AddPlayer(name string) uint32{
 	player := &Player{
 		Entity: NewEntity(),
 		SyncComp: &SyncComp{Dirty: false},
@@ -51,6 +54,7 @@ func (ECS *ECS) AddPlayer(name string){
 			s.AddEntity(player.Entity, player.PlayerStatsComp, player.SyncComp)
 		}
 	}
+	return player.ID
 }
 
 func (P *PlayerSys) Init(){
