@@ -40,7 +40,7 @@ func (ECS *ECS) AddSettlement(name string, pos Vec){
 			Facing: V2i(0,0),
 		},
 		SettlementStatsComp: &SettlementStatsComp{Name: name},
-		RenderComp: &RenderComp{Depth: STRUCTURES_DEPTH, Buffer: b},
+		RenderComp: &RenderComp{Depth: STRUCTURES_DEPTH, Buffer: b, Offset: V2i(-len(name)/2,-1)},
 	}
 
 	ECS.AddEntity(settlement.Entity, settlement.SyncComp, settlement.PosComp, settlement.SettlementStatsComp)

@@ -41,6 +41,7 @@ type RendererSys struct {
 
 type RenderComp struct {
 	Depth int
+	Offset  Vec
 	Buffer *tcell.CellBuffer
 }
 
@@ -100,7 +101,7 @@ func (R *RendererSys) Update(){
 			for y:=0; y<height;y ++{
 				rune, _, style, _ := r.Buffer.GetContent(x,y)
 				// draw at the offset from the RenderComp position
-				R.Screen.Char(rune, R.PosComps[i].Pos.Add(V2i(x,y)), style, R.PosComps[i].View, r.Depth)
+				R.Screen.Char(rune, R.PosComps[i].Pos.Add(V2i(x,y)).Add(R.RenderComps[i].Offset), style, R.PosComps[i].View, r.Depth)
 			}
 		}
 	}
