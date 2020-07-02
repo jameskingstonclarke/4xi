@@ -17,7 +17,7 @@ const (
 )
 
 type InputData struct {
-	MouseDepth     uint32
+	MouseDepth     int
 	MousePressed   rune
 	MouseHeld      rune
 	PrevMouse      rune
@@ -34,6 +34,7 @@ type Screen struct {
 	Cam    		  Vec
 	Width, Height int
 	ZBuffer       []tcell.CellBuffer
+	PrevZBuffer   []tcell.CellBuffer
 }
 
 var (
@@ -79,6 +80,9 @@ func (Screen *Screen) Init(){
 }
 
 func (Screen *Screen) Resize(){
+	for _, buf := range Screen.ZBuffer {
+		buf.Resize(Screen.Width, Screen.Height)
+	}
 	Screen.Screen.Sync()
 }
 
@@ -140,7 +144,7 @@ func (Screen *Screen) Draw(){
 				rune, _, style, _ := Screen.ZBuffer[i].GetContent(x, y)
 				// we have to draw the cell if the z-depth is 0 to clear the screen,
 				// otherwise we get drawing artifacts. The reason we draw only if the rune
-				// if not ' ' is becuase otherwise it would clear the char in the lower depth.
+				// if not ' ' is because otherwise it would clear the char in the lower depth.
 				if i == 0 || rune != ' ' {
 					Screen.Screen.SetCell(x, y, style, rune)
 				}
@@ -148,6 +152,9 @@ func (Screen *Screen) Draw(){
 		}
 	}
 	Screen.Screen.Show()
+	// first copy the zbuffer to the previous zbuffer
+	Screen.PrevZBuffer = make([]tcell.CellBuffer, len(Screen.ZBuffer))
+	copy(Screen.PrevZBuffer, Screen.ZBuffer)
 	for i:=0; i<Z_DEPTH; i++ {
 		Screen.ZBuffer[i] = tcell.CellBuffer{}
 		Screen.ZBuffer[i].Resize(Screen.Width, Screen.Height)
@@ -155,14 +162,16 @@ func (Screen *Screen) Draw(){
 	ScreenMutex.Unlock()
 }
 
-func (Screen *Screen) CalculateMouseDepth() uint32{
-	var depth uint32 = 0
+// TODO the screen seems to be able to only recognise clicks on depth 0, every other z-layer is just blank
+func (Screen *Screen) CalculateMouseDepth() int{
+	depth := -1
 	// go through the screen buffers at the position of the mouse to see what is being drawn
 	for i:=0;i<Z_DEPTH;i++{
-		rune, _, _, _ := Screen.ZBuffer[i].GetContent(int(InputBuffer.MousePos.X), int(InputBuffer.MousePos.Y))
+		// why is this prevzbuffer essentially 0?
+		rune, _, _, _ := Screen.PrevZBuffer[i].GetContent(int(InputBuffer.MousePos.X), int(InputBuffer.MousePos.Y))
 		// if the layer contains a rune at the position we requested, then set the depth to that layer
 		if rune != ' '{
-			depth = uint32(i)
+			depth = i
 		}
 	}
 	return depth
@@ -171,6 +180,7 @@ func (Screen *Screen) CalculateMouseDepth() uint32{
 func (Screen *Screen) Poll() {
 	for Running {
 		ev := Screen.Screen.PollEvent()
+		// when we receive an event, lock the screen
 		ScreenMutex.Lock()
 		switch ev := ev.(type){
 		case *tcell.EventKey:
@@ -197,6 +207,7 @@ func (Screen *Screen) Poll() {
 					InputBuffer.MousePressed = InputBuffer.MouseHeld
 					// reset the mouse held
 					InputBuffer.MouseHeld = 0
+					InputBuffer.MouseDepth = Screen.CalculateMouseDepth()
 				}
 			// if we are holding each button then set it to that
 			case tcell.Button1:
@@ -208,7 +219,6 @@ func (Screen *Screen) Poll() {
 			// update the mouse position every mouse event
 			x, y := ev.Position()
 			InputBuffer.MousePos = V2i(x, y)
-			InputBuffer.MouseDepth = Screen.CalculateMouseDepth()
 			break
 		case *tcell.EventResize:
 			Screen.Width, Screen.Height = ev.Size()

@@ -25,8 +25,8 @@ type ClickEvent struct{
 	Button      rune
 	ScreenPos   Vec
 	WorldPos    Vec
-	Layer uint32
-	Type  uint8
+	Layer 	    int
+	Type  	    uint8
 }
 
 
@@ -77,15 +77,6 @@ func (R *RendererSys) AddEntity(Entity *Entity, RenderComp *RenderComp, PosComp 
 }
 
 func (R *RendererSys) Update(){
-	if InputBuffer.MousePressed != 0 {
-		CLog("click layer: ", InputBuffer.MouseDepth)
-		R.ECS.Event(ClickEvent{
-			Button:	   InputBuffer.MousePressed,
-			ScreenPos: InputBuffer.MousePos,
-			WorldPos:  R.Screen.ScreenToWorld(InputBuffer.MousePos),
-			Layer:     InputBuffer.MouseDepth,
-		})
-	}
 
 	// process camera movement
 	if InputBuffer.KeyHeld == 'a'{
@@ -100,7 +91,7 @@ func (R *RendererSys) Update(){
 		Running = false
 	}
 
-	// render each RenderComp
+	// first render each RenderComp to the screen
 	for i:=0; i<R.Size; i++{
 		r := R.RenderComps[i]
 		width, height := r.Buffer.Size()
@@ -113,6 +104,17 @@ func (R *RendererSys) Update(){
 			}
 		}
 	}
+
+	// check for mouse inputs
+	if InputBuffer.MousePressed != 0 {
+		R.ECS.Event(ClickEvent{
+			Button:	   InputBuffer.MousePressed,
+			ScreenPos: InputBuffer.MousePos,
+			WorldPos:  R.Screen.ScreenToWorld(InputBuffer.MousePos),
+			Layer:     InputBuffer.MouseDepth,
+		})
+	}
+
 	R.Screen.Draw()
 }
 

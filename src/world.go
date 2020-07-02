@@ -23,7 +23,7 @@ func (W *WorldSys) Init(){
 	W.Width = 200
 	W.Height = 100
 	// generate the cells
-	p := perlin.NewPerlin(2,3,5, 12345)
+	p := perlin.NewPerlin(2,3,5, 1)
 	for x:=0;x<W.Width;x++{
 		for y:=0;y<W.Height;y++{
 			var cellType uint32

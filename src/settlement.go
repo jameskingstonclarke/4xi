@@ -87,12 +87,13 @@ func (S *SettlementSys) ListenSyncEvent(event SyncEvent){}
 func (S *SettlementSys) ListenClickEvent(event ClickEvent){
 	// this is the first way of checking the click (this assumes the structures depth is constant)
 	if event.Layer == STRUCTURES_DEPTH && event.Type == PRESS{
+		CLog("fuck yes")
 		for i := 0; i < S.Size; i++ {
 			if event.WorldPos.Equals(S.PosComps[i].Pos) {
 				S.ECS.Event(NewWinEvent{
 					ID:    fmt.Sprintf("settlement: %f, %f", event.WorldPos.X, event.WorldPos.Y),
 					Title: fmt.Sprintf("settlement: %f, %f", event.WorldPos.X, event.WorldPos.Y),
-					Text: []string{fmt.Sprintf("cell type %s", S.SettlementStatsComps[i].Name)},
+					Text: []string{fmt.Sprintf("settlement %s", S.SettlementStatsComps[i].Name)},
 				})
 			}
 		}

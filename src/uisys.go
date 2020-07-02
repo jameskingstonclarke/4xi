@@ -29,7 +29,7 @@ func (U *UISys) Remove(){}
 func (U *UISys) Priority()int{return 0}
 
 func (U *UISys) ListenNewWinEvent(event NewWinEvent){
-	w:=U.UIManager.NewWin(event.ID, true, V2i(10,10))
+	w:=U.UIManager.NewWin(event.ID, true, InputBuffer.MousePos.Sub(V2i(10,10)))
 	for i, t := range event.Text{
 		w.NewText(event.ID+":text:"+string(i),t, tcell.StyleDefault, func(){})
 	}
