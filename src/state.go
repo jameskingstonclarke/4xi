@@ -35,7 +35,7 @@ type StateSys struct {
 // add a new player state to the game
 func (ECS *ECS) AddState(id string) uint32{
 	// create a new state with the given id
-	state := &State{Entity: ECS.NewEntity(), StateComp: &StateComp{PlayerID:id}}
+	state := &State{Entity: ECS.NewEntity(), SyncComp: &SyncComp{Dirty: false}, StateComp: &StateComp{PlayerID:id}}
 	// register the entity to the ECS
 	ECS.AddEntity(state.Entity, state.StateComp)
 	// add the cell to the systems

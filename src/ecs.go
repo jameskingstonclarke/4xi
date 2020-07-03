@@ -37,10 +37,10 @@ func (ECS *ECS) AddEntity(Entity *Entity, components... Component){
 }
 
 // serialize an entity by serializing each component
+// TODO make this better, as its gonna be hard to unmarshal the bytes...
 func (ECS *ECS) SerializeEntity(id uint32) []byte{
 	components:=ECS.GetEntityComponents(id)
 	buf := new(bytes.Buffer)
-	//buf.Write([]byte(id))
 	for _, comp := range components{
 		bytes, err := json.Marshal(comp)
 		if err != nil{

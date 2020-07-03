@@ -135,7 +135,7 @@ func (U *UnitSys) ListenClientCommandEvent(event ClientCommandEvent){
 					U.SyncComps[i].Dirty = true
 					// TODO should this be done now? if so we may be triggering quite a lot of syncs
 					// trigger a sync event
-					U.ECS.Event(SyncEvent{})
+					U.ECS.Event(ServerCommandEvent{Side:SERVER,Type:SERVER_CMD_SYNC})
 				}
 			}
 		}

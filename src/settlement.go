@@ -85,9 +85,6 @@ func (S *SettlementSys) Close(){
 
 }
 
-// listen for sync events
-func (S *SettlementSys) ListenSyncEvent(event SyncEvent){}
-
 func (S *SettlementSys) ListenClickEvent(event ClickEvent){
 	// this is the first way of checking the click (this assumes the structures depth is constant)
 	if event.Layer == STRUCTURES_DEPTH && event.Type == PRESS{

@@ -64,11 +64,6 @@ type ClientCommandEvent struct{
 	//Data []byte
 }
 
-// used by the server to sync data to clients
-type SyncEvent struct {
-	EventBase
-}
-
 type SyncAction struct {}
 
 func (N *NetworkSys) AddEntity(Entity *Entity, SyncComp *SyncComp){
@@ -149,12 +144,12 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 		}
 	}
 	if command.Side == SERVER && command.Type == SERVER_CMD_SYNC {
-
+		SLog("server attempting to sync...")
 		// TODO
 		// we need to iterate over each entity and check if it is dirty. if so, we then get all of it's
 		// component data and pack it into the sync command data field. we then serialise this command
 		// and broadcast it to the clients.
-
+		
 		for i := 0; i < N.Size; i++ {
 			SLog("checking entity...")
 			// if the entity is dirty (it has been changed), it needs synchronizing
@@ -172,7 +167,7 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 		newCommand := ServerCommandEvent{
 			Type: SERVER_CMD_SYNC,
 			Side: CLIENT,
-			Data: nil, // TODO this data should be the array of the dirty entities
+			Data: seri, // TODO this data should be the array of the dirty entities
 		}
 		// send out a sync to all clients
 		for _, client := range N.ClientConnections {
