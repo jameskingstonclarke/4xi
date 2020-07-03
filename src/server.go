@@ -9,6 +9,7 @@ func NewServer() *Server{
 	ecs := NewECS(SERVER)
 	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&PlayerSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&UnitSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&WorldSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&EmpireSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&SettlementSys{SystemBase: NewSysBase(ecs)})

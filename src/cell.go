@@ -16,7 +16,9 @@ type Cell struct {
 }
 
 type CellDatComp struct {
-	Type uint32
+	Type         uint32
+	Arable       float64
+	Contaminated float64
 }
 
 func (ECS *ECS) AddCell(pos Vec, cellType uint32){

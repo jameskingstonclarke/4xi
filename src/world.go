@@ -12,6 +12,7 @@ type WorldSys struct {
 	PosComps     []*PosComp
 	Width, Height int
 }
+
 func (W *WorldSys) AddEntity(Entity *Entity, CellDatComp *CellDatComp, PosComp *PosComp){
 	W.Entities = append(W.Entities, Entity)
 	W.CellDatComps = append(W.CellDatComps, CellDatComp)
@@ -20,14 +21,14 @@ func (W *WorldSys) AddEntity(Entity *Entity, CellDatComp *CellDatComp, PosComp *
 }
 
 func (W *WorldSys) Init(){
-	W.Width = 200
-	W.Height = 100
+	W.Width = 50
+	W.Height = 25
 	// generate the cells
-	p := perlin.NewPerlin(2,3,5, 1)
+	p := perlin.NewPerlin(2,5,5, 1)
 	for x:=0;x<W.Width;x++{
 		for y:=0;y<W.Height;y++{
 			var cellType uint32
-			noise := p.Noise2D(float64(x)/100,float64(y)/100)*-1
+			noise := p.Noise2D(float64(x)/150,float64(y)/150)*-1
 			if noise > 0.2{
 				cellType = CELL_WATER
 			}else if noise > 0.1{
@@ -53,13 +54,17 @@ func (W *WorldSys) Priority() int {
 }
 
 func (W *WorldSys) ListenClickEvent(event ClickEvent){
-	if event.Layer == CELL_DEPTH && event.Type == PRESS {
+	if event.Layer == CELL_DEPTH && event.Type == PRESS && event.Button =='1'{
 		for i := 0; i < W.Size; i++ {
 			if event.WorldPos.Equals(W.PosComps[i].Pos) {
 				W.ECS.Event(NewWinEvent{
 					ID:    fmt.Sprintf("cell: %f, %f", event.WorldPos.X, event.WorldPos.Y),
 					Title: fmt.Sprintf("cell: %f, %f", event.WorldPos.X, event.WorldPos.Y),
-					Text: []string{fmt.Sprintf("cell type %d", W.CellDatComps[i].Type)},
+					Text: []string{
+						fmt.Sprintf("type %d", W.CellDatComps[i].Type),
+						fmt.Sprintf("arable %f", W.CellDatComps[i].Arable),
+						fmt.Sprintf("contaminated %f", W.CellDatComps[i].Contaminated),
+					},
 				})
 			}
 		}

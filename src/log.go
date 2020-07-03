@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	CLogPath = "F:/OneDrive/Programming/GO/src/4xi/logs/clogs.txt"
-	SLogPath = "F:/OneDrive/Programming/GO/src/4xi/logs/slogs.txt"
+	CLogPath = "./clogs.txt"
+	SLogPath = "./slogs.txt"
 )
 
 var (

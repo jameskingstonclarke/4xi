@@ -10,6 +10,7 @@ type SettlementSys struct {
 	*SystemBase
 	PosComps []*PosComp
 	SettlementStatsComps []*SettlementStatsComp
+	SelectedCity uint32
 }
 
 // empire entity
@@ -23,7 +24,9 @@ type Settlement struct{
 
 // component for storing empire statistics
 type SettlementStatsComp struct {
-	Name  string
+	Name       string
+	Population float64
+	Production float64
 }
 
 func (ECS *ECS) AddSettlement(name string, pos Vec){
@@ -61,6 +64,7 @@ func (ECS *ECS) AddSettlement(name string, pos Vec){
 func (S *SettlementSys) Init(){
 	S.ECS.AddSettlement("cairo", V2i(0,0))
 	S.ECS.AddSettlement("tokyo", V2i(20,15))
+	S.ECS.AddSettlement("london", V2i(5,12))
 }
 
 
@@ -87,14 +91,19 @@ func (S *SettlementSys) ListenSyncEvent(event SyncEvent){}
 func (S *SettlementSys) ListenClickEvent(event ClickEvent){
 	// this is the first way of checking the click (this assumes the structures depth is constant)
 	if event.Layer == STRUCTURES_DEPTH && event.Type == PRESS{
-		CLog("fuck yes")
 		for i := 0; i < S.Size; i++ {
 			if event.WorldPos.Equals(S.PosComps[i].Pos) {
-				S.ECS.Event(NewWinEvent{
-					ID:    fmt.Sprintf("settlement: %f, %f", event.WorldPos.X, event.WorldPos.Y),
-					Title: fmt.Sprintf("settlement: %f, %f", event.WorldPos.X, event.WorldPos.Y),
-					Text: []string{fmt.Sprintf("settlement %s", S.SettlementStatsComps[i].Name)},
-				})
+				// open UI
+				if event.Button == '1' {
+					S.ECS.Event(NewWinEvent{
+						ID:    fmt.Sprintf("settlement: %f, %f", event.WorldPos.X, event.WorldPos.Y),
+						Title: fmt.Sprintf("settlement: %f, %f", event.WorldPos.X, event.WorldPos.Y),
+						Text: []string{
+							fmt.Sprintf("population %f", S.SettlementStatsComps[i].Population),
+							fmt.Sprintf("production %f", S.SettlementStatsComps[i].Production),
+						},
+					})
+				}
 			}
 		}
 	}

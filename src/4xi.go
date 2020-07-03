@@ -58,15 +58,12 @@ func Host(){
 }
 
 func Connect(){
-
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Enter server address:")
 	addr, err := reader.ReadString('\n')
 	if err != nil{
 		CLog(err)
 	}
-
-
 	WaitGroup.Add(1)
 	Game.Client = NewClient(strings.TrimSpace(addr))
 	go Game.ProcessClient()

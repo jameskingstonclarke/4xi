@@ -8,6 +8,8 @@ const (
 	PRESS = 0x0
 	HELD  = 0x1
 
+	CAM_SPEED = 0x3
+
 	CELL_DEPTH 		 = 0x0
 	STRUCTURES_DEPTH = 0x1
 	UNITS_DEPTH 	 = 0x2
@@ -81,13 +83,13 @@ func (R *RendererSys) Update(){
 
 	// process camera movement
 	if InputBuffer.KeyHeld == 'a'{
-		R.Screen.Cam = R.Screen.Cam.Add(V2(1,0))
+		R.Screen.Cam = R.Screen.Cam.Add(V2(CAM_SPEED,0))
 	}else if InputBuffer.KeyHeld == 'd'{
-		R.Screen.Cam = R.Screen.Cam.Add(V2(-1,0))
+		R.Screen.Cam = R.Screen.Cam.Add(V2(-CAM_SPEED,0))
 	}else if InputBuffer.KeyHeld == 'w'{
-		R.Screen.Cam = R.Screen.Cam.Add(V2(0,1))
+		R.Screen.Cam = R.Screen.Cam.Add(V2(0,CAM_SPEED))
 	}else if InputBuffer.KeyHeld == 's'{
-		R.Screen.Cam = R.Screen.Cam.Add(V2(0,-1))
+		R.Screen.Cam = R.Screen.Cam.Add(V2(0,-CAM_SPEED))
 	}else if InputBuffer.CtrlKeyPressed == tcell.KeyEscape{
 		Running = false
 	}
