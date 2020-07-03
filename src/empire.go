@@ -29,7 +29,7 @@ type EmpireStatsComp struct {
 
 func (ECS *ECS) AddEmpire(name string, pos Vec){
 	empire := &Empire{
-		Entity:          NewEntity(),
+		Entity:          ECS.NewEntity(),
 		PosComp:         &PosComp{
 			Pos: pos,
 			Facing: V2i(0,0),

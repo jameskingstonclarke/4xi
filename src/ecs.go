@@ -6,11 +6,8 @@ import (
 	"reflect"
 )
 
-var (
-	EId uint32 = 0
-)
-
 type ECS struct {
+	EId uint32
 	Systems [][]System
 	// store a reference to each entity
 	Entities []*Entity
@@ -141,9 +138,9 @@ type Entity struct {
 	ComponentCount uint32
 }
 
-func NewEntity() *Entity{
-	e := &Entity{ID: EId}
-	EId++
+func (ECS *ECS) NewEntity() *Entity{
+	e := &Entity{ID: ECS.EId}
+	ECS.EId++
 	return e
 }
 

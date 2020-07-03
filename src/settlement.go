@@ -36,7 +36,7 @@ func (ECS *ECS) AddSettlement(name string, pos Vec){
 	b = BufRune(b, '▲',tcell.StyleDefault.Foreground(tcell.ColorRed), V2i(len(name)/2, 1))
 
 	settlement := &Settlement{
-		Entity:          NewEntity(),
+		Entity:          ECS.NewEntity(),
 		SyncComp: &SyncComp{Dirty: false},
 		PosComp:         &PosComp{
 			Pos: pos,

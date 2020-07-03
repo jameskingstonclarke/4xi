@@ -36,7 +36,7 @@ func (ECS *ECS) AddCell(pos Vec, cellType uint32){
 		yield = '2'
 	}
 	cell := &Cell{
-		Entity:     NewEntity(),
+		Entity:     ECS.NewEntity(),
 		PosComp:    &PosComp{
 			Pos: pos,
 			Facing: V2i(0,0),

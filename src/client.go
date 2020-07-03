@@ -11,13 +11,15 @@ func NewClient(addr string) *Client{
 	// create a client by registering all the relevant ECS systems
 	ecs := NewECS(CLIENT)
 	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs), ServerAddress: addr})
-	ecs.RegisterSystem(&PlayerSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&StateSys{SystemBase: NewSysBase(ecs)})
+	//ecs.RegisterSystem(&PlayerSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&UnitSys{SystemBase: NewSysBase(ecs)})
-	ecs.RegisterSystem(&RendererSys{SystemBase: NewSysBase(ecs), Screen: Screen})
-	ecs.RegisterSystem(&UISys{SystemBase: NewSysBase(ecs), UIManager: NewUIManager(Screen)})
 	ecs.RegisterSystem(&WorldSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&EmpireSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&SettlementSys{SystemBase: NewSysBase(ecs)})
+	
+	ecs.RegisterSystem(&RendererSys{SystemBase: NewSysBase(ecs), Screen: Screen})
+	ecs.RegisterSystem(&UISys{SystemBase: NewSysBase(ecs), UIManager: NewUIManager(Screen)})
 	return &Client{
 		ECS:        ecs,
 		Screen: Screen,

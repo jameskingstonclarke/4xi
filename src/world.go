@@ -21,6 +21,7 @@ func (W *WorldSys) AddEntity(Entity *Entity, CellDatComp *CellDatComp, PosComp *
 }
 
 func (W *WorldSys) Init(){
+	CLog("world system init!")
 	W.Width = 50
 	W.Height = 25
 	// generate the cells

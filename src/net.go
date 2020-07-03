@@ -9,10 +9,16 @@ const (
 	CLIENT = 0x1 << 1
 	SERVER = 0x1 << 2
 	PORT   = ":7777"
+
 	// used by the client to indicate it wants to go to the next turn
-	CLIENT_CMD_NEXT_TURN = 0x0
+	CLIENT_CMD_NEXT_TURN = 0x1
+	// used by the client to tell the server it is moving a unit
+	CLIENT_CMD_MOVE_UNIT = 0x2
+
+	// used when the server tells the clients it is the next turn
+	SERVER_CMD_NEXT_TURN = 0x98
 	// used by the server to indicate clients should sync
-	SERVER_CMD_SYNC      = 0x1
+	SERVER_CMD_SYNC      = 0x99
 )
 
 // this system handles everything network related. it can be in 1 of 2 modes, CLIENT or SERVER. the
@@ -54,13 +60,13 @@ type ClientCommandEvent struct{
 	EventBase	// whether the command is on the server or client side
 	Side uint8
 	Type uint32
-	Data []byte
+	Data string
+	//Data []byte
 }
 
 // used by the server to sync data to clients
 type SyncEvent struct {
 	EventBase
-	DirtyEntities []Entity
 }
 
 type SyncAction struct {}
@@ -130,14 +136,25 @@ func (N *NetworkSys) PollClientConnections(){
 // TODO SERVER
 // listen for when the server has done processing and is ready to sync
 func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
+	// TODO make this code better jesus
+	if command.Side == SERVER && command.Type == SERVER_CMD_NEXT_TURN{
+		// send a next turn command
+		for _, client := range N.ClientConnections {
+			encoder := json.NewEncoder(client)
+			command.Side = CLIENT
+			err := encoder.Encode(command)
+			if err != nil{
+				SLog(err)
+			}
+		}
+	}
 	if command.Side == SERVER && command.Type == SERVER_CMD_SYNC {
-		// TODO fix this
-		//syncEvent := SyncEvent{
-		//	EventBase:     EventBase{},
-		//	DirtyEntities: nil,
-		//}
-		//// store all the entities that need synchronizing in the SyncEvent
-		//// iterate over each entity that needs to be synced
+
+		// TODO
+		// we need to iterate over each entity and check if it is dirty. if so, we then get all of it's
+		// component data and pack it into the sync command data field. we then serialise this command
+		// and broadcast it to the clients.
+
 		for i := 0; i < N.Size; i++ {
 			SLog("checking entity...")
 			// if the entity is dirty (it has been changed), it needs synchronizing
@@ -154,8 +171,8 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 		// we want to send a sync command over the network to all clients
 		newCommand := ServerCommandEvent{
 			Type: SERVER_CMD_SYNC,
-			Side: SERVER,
-			Data: nil,
+			Side: CLIENT,
+			Data: nil, // TODO this data should be the array of the dirty entities
 		}
 		// send out a sync to all clients
 		for _, client := range N.ClientConnections {

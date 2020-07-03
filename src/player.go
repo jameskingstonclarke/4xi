@@ -1,14 +1,7 @@
 package src
 
-// TODO some of this logic such as turn etc should be in a GameEntity / GameSys
 
-
-// used by the server to tell the networks to dispatch a sync event as we have
-// moved onto the next turn
-// (syncs happen every turn)
-type ServerProcessEvent struct {
-	EventBase
-}
+// TODO technically we dont need a player system as we can just use the empire system instead
 
 // player system
 type PlayerSys struct {
@@ -36,7 +29,7 @@ type PlayerStatsComp struct {
 
 func (ECS *ECS) AddPlayer(name string) uint32{
 	player := &Player{
-		Entity: NewEntity(),
+		Entity: ECS.NewEntity(),
 		SyncComp: &SyncComp{Dirty: false},
 		PlayerStatsComp:   &PlayerStatsComp{
 			Name: name,
@@ -87,26 +80,6 @@ func (P *PlayerSys) Remove(){
 
 func (P *PlayerSys) Close(){
 
-}
-
-// TODO SERVER SIDE
-// server listens for commands
-func (P *PlayerSys) ListenClientCommandEvent(event ClientCommandEvent){
-	if event.Side == SERVER {
-		switch event.Type {
-		case CLIENT_CMD_NEXT_TURN:
-			P.TurnBuffer++
-			// check if everyone has taken their turn
-			if P.TurnBuffer == P.Size {
-				P.Turn++
-				// once everyone has taken their turn, dispatch a next turn event to tell the networksys
-				// to dispatch a sync event to all the clients
-				// TODO this is the problem for some reason, obviously syncing is fucked
-				SLog("client next turn'd")
-				P.ECS.Event(ServerCommandEvent{Type: SERVER_CMD_SYNC, Side: SERVER})
-			}
-		}
-	}
 }
 
 // TODO CLIENT
