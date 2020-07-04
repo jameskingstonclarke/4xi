@@ -93,7 +93,15 @@ func (R *RendererSys) Update(){
 	}else if InputBuffer.KeyHeld == 's'{
 		R.Screen.Cam = R.Screen.Cam.Add(V2(0,-CAM_SPEED))
 	}else if InputBuffer.CtrlKeyPressed == tcell.KeyEscape{
-		Running = false
+		R.ECS.Event(NewWinEvent{
+			ID:    "menue_win",
+			Title: "menue",
+			Text: map[string]func(){
+				"save":nil,
+				"options":nil,
+				"quit":func(){Running=false},
+			},
+		})
 	}
 
 	// first render each RenderComp to the screen

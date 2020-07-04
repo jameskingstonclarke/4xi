@@ -73,6 +73,19 @@ func (S *StateSys) Update(){
 }
 func (S *StateSys) Remove(){}
 
+// testing to see if next turns work
+func (S *StateSys) ListenServerCommandEvent(event ServerCommandEvent){
+	if event.Side == CLIENT && event.Type == SERVER_CMD_NEXT_TURN{
+		S.ECS.Event(NewWinEvent{
+			ID:    "next_turn",
+			Title: "next_turn",
+			Text: map[string]func(){
+				"next turn!":nil,
+			},
+		})
+	}
+}
+
 // TODO SERVER
 // server listens for commands
 func (S *StateSys) ListenClientCommandEvent(event ClientCommandEvent){
@@ -88,7 +101,7 @@ func (S *StateSys) ListenClientCommandEvent(event ClientCommandEvent){
 			// used to check if everyone has taken their turn
 			turnBuffer := 0
 			// check if the client has taken their turn already
-			// if they havent, then take their turn
+			// if they haven't, then take their turn
 			for i:=0;i<S.Size;i++{
 				if S.Entities[i].ID == clientID{
 					if S.StateComps[i].TakenTurn != true{

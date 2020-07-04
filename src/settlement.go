@@ -97,9 +97,9 @@ func (S *SettlementSys) ListenClickEvent(event ClickEvent){
 					S.ECS.Event(NewWinEvent{
 						ID:    fmt.Sprintf("settlement: %f, %f", event.WorldPos.X, event.WorldPos.Y),
 						Title: fmt.Sprintf("settlement: %f, %f", event.WorldPos.X, event.WorldPos.Y),
-						Text: []string{
-							fmt.Sprintf("population %f", S.SettlementStatsComps[i].Population),
-							fmt.Sprintf("production %f", S.SettlementStatsComps[i].Production),
+						Text: map[string]func(){
+							fmt.Sprintf("population %f", S.SettlementStatsComps[i].Population):nil,
+							fmt.Sprintf("production %f", S.SettlementStatsComps[i].Production):nil,
 						},
 					})
 				}

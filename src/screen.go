@@ -2,7 +2,6 @@ package src
 
 import (
 	"github.com/gdamore/tcell"
-	"os"
 	"sync"
 )
 
@@ -26,6 +25,8 @@ type InputData struct {
 	PrevKey        rune
 	// used for special key presses e.g. ctrl + c
 	CtrlKeyPressed tcell.Key
+	CtrlKeyHeld    tcell.Key
+	PrevCtrlKey    tcell.Key
 	MousePos       Vec
 }
 
@@ -134,9 +135,9 @@ func (Screen *Screen) Draw(){
 	// reset what button was pressed
 	InputBuffer.MousePressed = 0
 	InputBuffer.KeyPressed=0
-	// TODO fix screen key holding
 	InputBuffer.KeyHeld=0
-
+	InputBuffer.CtrlKeyPressed=0
+	InputBuffer.CtrlKeyHeld=0
 
 	for y := 0; y < Screen.Height; y++ {
 		for x := 0; x < Screen.Width; x++ {
@@ -192,10 +193,14 @@ func (Screen *Screen) Poll() {
 				if InputBuffer.KeyHeld != InputBuffer.PrevKey{
 					InputBuffer.KeyPressed = key
 				}
-			}else if ev.Key() == tcell.KeyEscape{
-				os.Exit(2)
 			}else {
-			    InputBuffer.CtrlKeyPressed = ev.Key()
+				key := ev.Key()
+				InputBuffer.PrevCtrlKey = InputBuffer.CtrlKeyHeld
+				InputBuffer.CtrlKeyHeld = key
+				// if we are pressing a different key, do a key press
+				if InputBuffer.CtrlKeyHeld != InputBuffer.PrevCtrlKey{
+					InputBuffer.CtrlKeyPressed = key
+				}
 			}
 			break
 		case *tcell.EventMouse:

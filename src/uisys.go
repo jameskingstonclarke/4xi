@@ -13,7 +13,7 @@ type NewWinEvent struct {
 	EventBase
 	ID    string
 	Title string
-	Text  []string
+	Text  map[string]func()
 }
 
 // event to destroy a window
@@ -30,8 +30,10 @@ func (U *UISys) Priority()int{return 0}
 
 func (U *UISys) ListenNewWinEvent(event NewWinEvent){
 	w:=U.UIManager.NewWin(event.ID, true, InputBuffer.MousePos.Sub(V2i(5,5)))
-	for i, t := range event.Text{
-		w.NewText(event.ID+":text:"+string(i),t, tcell.StyleDefault, func(){})
+	i:=0
+	for t, callback := range event.Text{
+		w.NewText(event.ID+":text:"+string(i),t, tcell.StyleDefault, callback)
+		i++
 	}
 }
 

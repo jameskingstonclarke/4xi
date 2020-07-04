@@ -17,7 +17,7 @@ type UIManager struct {
 }
 
 func (U *UIManager) Remove(id string){
-	delete(U.UI, id);
+	delete(U.UI, id)
 }
 
 func NewUIManager(Screen *Screen) *UIManager{
@@ -163,7 +163,9 @@ func (Text *Text) Draw(){
 		if InputBuffer.MousePressed == '1' {
 			if InputBuffer.MousePos.X >= pos.X && int(InputBuffer.MousePos.X) <= int(pos.X)+len(Text.T) {
 				if InputBuffer.MousePos.Y == pos.Y {
-					Text.Callback()
+					if Text.Callback != nil{
+						Text.Callback()
+					}
 				}
 			}
 		}
