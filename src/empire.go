@@ -27,6 +27,8 @@ type EmpireStatsComp struct {
 	Money float64
 }
 
+func (E *EmpireStatsComp) Deserialize(data interface{}){}
+
 func (ECS *ECS) AddEmpire(name string, pos Vec){
 	empire := &Empire{
 		Entity:          ECS.NewEntity(),

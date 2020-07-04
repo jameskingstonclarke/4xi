@@ -27,6 +27,8 @@ type PlayerStatsComp struct {
 	Name  string
 }
 
+func (P *PlayerStatsComp) Deserialize(data interface{}){}
+
 func (ECS *ECS) AddPlayer(name string) uint32{
 	player := &Player{
 		Entity: ECS.NewEntity(),

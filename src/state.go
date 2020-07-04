@@ -22,6 +22,10 @@ type StateComp struct {
 	TakenTurn bool
 }
 
+func (S *StateComp) Deserialize(data interface{}){
+
+}
+
 // represents the state of the game
 // it keeps track of the turn etc
 type StateSys struct {
@@ -99,39 +103,15 @@ func (S *StateSys) ListenClientCommandEvent(event ClientCommandEvent){
 			}
 			// if everyone has taken their turn, then we go to the next turn
 			if turnBuffer == S.Size {
-				// update everyones turns
+				// update everyone's turns
 				for _, client := range S.StateComps{
 					client.Turn++
 				}
 				// first sync the clients
-				//S.ECS.Event(SyncEvent{})
+				S.ECS.Event(ServerCommandEvent{Side: SERVER, Type: SERVER_CMD_SYNC})
 				// then send them a next turn event
-				S.ECS.Event(ServerCommandEvent{Type: SERVER_CMD_NEXT_TURN, Side: SERVER})
+				S.ECS.Event(ServerCommandEvent{Side: SERVER, Type: SERVER_CMD_NEXT_TURN})
 			}
-		}
-	}
-}
-
-// TODO CLIENT
-// listen for sync event to update our state
-func (S *StateSys) ListenServerCommandEvent(event ServerCommandEvent){
-	if event.Side == CLIENT{
-		switch event.Type{
-		case SERVER_CMD_NEXT_TURN:
-
-			CLog("received next turn from server, it actually works!!!")
-
-		case SERVER_CMD_SYNC:
-			//// iterate over each dirty entity and update our system entities
-			//for _, dirtyEntity := range event.Data{
-			//	for i:=0;i<S.Size;i++{
-			//		// if the entity was modified, update its components
-			//		if dirtyEntity.ID == S.Entities[i].ID{
-			//			S.Entities[i].updatecomponentvalues
-			//		}
-			//	}
-			//}
-			CLog("server sent us a sync! ")
 		}
 	}
 }

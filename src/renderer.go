@@ -47,6 +47,8 @@ type RenderComp struct {
 	Buffer *tcell.CellBuffer
 }
 
+func (R *RenderComp) Deserialize(data interface{}){}
+
 // fill a cell buffer with text
 func BufText(buf *tcell.CellBuffer, text string, style tcell.Style, pos Vec) *tcell.CellBuffer{
 	for i, r := range text{

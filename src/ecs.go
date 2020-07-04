@@ -1,13 +1,16 @@
 package src
 
 import (
-	"bytes"
 	"encoding/json"
+	"fmt"
 	"reflect"
 )
 
 type ECS struct {
 	EId uint32
+	// number of entities
+	Size int
+	// store a map of each priority level containing systems
 	Systems [][]System
 	// store a reference to each entity
 	Entities []*Entity
@@ -34,21 +37,27 @@ func (ECS *ECS) AddEntity(Entity *Entity, components... Component){
 	for _, component := range components{
 		ECS.Components = append(ECS.Components, component)
 	}
+	ECS.Size++
 }
 
 // serialize an entity by serializing each component
 // TODO make this better, as its gonna be hard to unmarshal the bytes...
-func (ECS *ECS) SerializeEntity(id uint32) []byte{
+func (ECS *ECS) SerializeEntity(id uint32) string{
 	components:=ECS.GetEntityComponents(id)
-	buf := new(bytes.Buffer)
+	buf := fmt.Sprintf("{\"id\":%d, \"components\":[",id)
 	for _, comp := range components{
-		bytes, err := json.Marshal(comp)
+		compID := reflect.TypeOf(comp).String()[5:]
+		marshal, err := json.Marshal(&comp)
 		if err != nil{
 			SLogErr(err)
 		}
-		buf.Write(bytes)
+		comp := fmt.Sprintf("{\"%s\":%s},", compID, string(marshal))
+		buf+=comp
 	}
-	return buf.Bytes()
+	buf = buf[:len(buf)-1] // remove the last ','
+	buf+="]}"
+	return buf
+
 }
 
 // get all the components attached to a particular entity
@@ -179,6 +188,7 @@ type Closer interface {
 }
 
 type Component interface {
+	Deserialize(data interface{})
 	//Serialize() []byte
 }
 

@@ -21,9 +21,13 @@ type HealthComponent struct {
 	Health float64
 }
 
+func (H *HealthComponent) Deserialize(data interface{}){}
+
 type AttackComponent struct {
 	Damage float64
 }
+
+func (A *AttackComponent) Deserialize(data interface{}){}
 
 type UnitSys struct {
 	*SystemBase
@@ -38,7 +42,8 @@ type UnitSys struct {
 func (ECS *ECS) AddUnit(pos Vec) uint32{
 	unit := &Unit{
 		Entity:          ECS.NewEntity(),
-		SyncComp: &SyncComp{Dirty: false},
+		// we hide the RenderComponent from network syncs
+		SyncComp: &SyncComp{Dirty: false, Hidden: []string{"RenderComp"}},
 		PosComp: &PosComp{Pos: pos},
 		MovementComp: &MovementComp{Target: pos, Speed:  1},
 		HealthComponent: &HealthComponent{Health: 1},
@@ -46,7 +51,7 @@ func (ECS *ECS) AddUnit(pos Vec) uint32{
 		RenderComp: &RenderComp{Depth:  UNITS_DEPTH, Buffer: FillBufRune('u', tcell.StyleDefault)},
 	}
 	// register the entity to the ECS
-	ECS.AddEntity(unit.Entity, unit.PosComp, unit.MovementComp)
+	ECS.AddEntity(unit.Entity, unit.SyncComp, unit.PosComp, unit.MovementComp, unit.HealthComponent, unit.AttackComponent, unit.RenderComp)
 	// add the cell to the systems
 	for _, system := range ECS.Sys(){
 		switch s := system.(type){
@@ -110,6 +115,46 @@ func (U *UnitSys) ListenClickEvent(event ClickEvent){
 					Data:      fmt.Sprintf("{\"id\":%d, \"dest\":[%f,%f]}", id, event.WorldPos.X, event.WorldPos.Y),
 				})
 			}
+		}
+	}
+}
+
+// TODO CLIENT
+// listen for sync event to update our state
+func (U *UnitSys) ListenServerCommandEvent(event ServerCommandEvent){
+	if event.Side == CLIENT{
+		switch event.Type{
+		case SERVER_CMD_NEXT_TURN:
+		//case SERVER_CMD_SYNC:
+		//	CLog("server sent us a sync! ", string(event.Data))
+		//	// first get the map of entities that need syncing
+		//	var result []interface{}
+		//	json.Unmarshal(event.Data, &result)
+		//	// gor through each entity and check if we need to update the entity in this system
+		//	for _, encodedEntity := range result{
+		//		entity := encodedEntity.(map[string]interface{})
+		//		id := uint32(entity["id"].(float64))
+		//		for i:=0;i<U.Size;i++{
+		//			if U.Entities[i].ID == id{
+		//				// unmarshal the entity now
+		//				components := entity["components"].([]interface{})
+		//				for _, component := range components{
+		//					// each component is a map, with the key being the name and the value the actual component
+		//					compMap := component.(map[string]interface{})
+		//					// get the first key from the map
+		//					compID := reflect.ValueOf(compMap).MapKeys()[0].String()
+		//					compValue := compMap[compID].(map[string]interface{})
+		//					CLog("comp ID: ", compID, " value: ", compValue)
+		//					// update the pos comp and the movement comp
+		//					// unmarshal here
+		//					switch compID{
+		//					case "PosComp":
+		//					}
+		//				}
+		//			}
+		//		}
+		//
+		//	}
 		}
 	}
 }

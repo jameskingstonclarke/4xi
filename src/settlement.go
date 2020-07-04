@@ -29,6 +29,8 @@ type SettlementStatsComp struct {
 	Production float64
 }
 
+func (S *SettlementStatsComp) Deserialize(data interface{}){}
+
 func (ECS *ECS) AddSettlement(name string, pos Vec){
 
 	b := Buf(len(name),2)
@@ -37,7 +39,7 @@ func (ECS *ECS) AddSettlement(name string, pos Vec){
 
 	settlement := &Settlement{
 		Entity:          ECS.NewEntity(),
-		SyncComp: &SyncComp{Dirty: false},
+		SyncComp: &SyncComp{Dirty: false, Hidden: []string{"RenderComp"}},
 		PosComp:         &PosComp{
 			Pos: pos,
 			Facing: V2i(0,0),

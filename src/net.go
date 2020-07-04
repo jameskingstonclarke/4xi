@@ -3,6 +3,7 @@ package src
 import (
 	"encoding/json"
 	"net"
+	"reflect"
 )
 
 const (
@@ -40,10 +41,14 @@ type NetworkSys struct {
 type SyncComp struct {
 	// this is true if the entity's state has been changed. if this is true, the entity is synced across the network
 	Dirty bool
+	// TODO for now we don't need this as the component can simply choose not to deserialize itself
+	// names of the components that we DON't want to sync with the server, these will be ignored when syncing.
+	// this is particularly useful for ignoring client side components e.g. RenderComps etc
+	Hidden []string
 }
 
-func (S *SyncComp) Serialize() []byte{
-	return []byte{0}
+func (S *SyncComp) Deserialize(data interface{}){
+
 }
 
 // used by clients to send commands to the server
@@ -128,7 +133,7 @@ func (N *NetworkSys) PollClientConnections(){
 	}
 }
 
-// TODO SERVER
+// TODO CLIENT & SERVER
 // listen for when the server has done processing and is ready to sync
 func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 	// TODO make this code better jesus
@@ -149,7 +154,7 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 		// we need to iterate over each entity and check if it is dirty. if so, we then get all of it's
 		// component data and pack it into the sync command data field. we then serialise this command
 		// and broadcast it to the clients.
-		
+		entities:="["
 		for i := 0; i < N.Size; i++ {
 			SLog("checking entity...")
 			// if the entity is dirty (it has been changed), it needs synchronizing
@@ -159,15 +164,19 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 				N.SyncComps[i].Dirty = false
 				// serialize the entity
 				serial := N.ECS.SerializeEntity(N.Entities[i].ID)
-				SLog(serial)
+				entities+=serial
+				entities+=","
 			}
 		}
+		entities = entities[:len(entities)-1]
+		entities+="]"
+		SLog(entities)
 		//SLog(syncEvent)
 		// we want to send a sync command over the network to all clients
 		newCommand := ServerCommandEvent{
 			Type: SERVER_CMD_SYNC,
 			Side: CLIENT,
-			Data: seri, // TODO this data should be the array of the dirty entities
+			Data: []byte(entities), // TODO this data should be the array of the dirty entities
 		}
 		// send out a sync to all clients
 		for _, client := range N.ClientConnections {
@@ -178,6 +187,44 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 			}
 		}
 		SLog("sent sync command to clients ")
+	}
+	// check if we have recieved a sync from the server
+	if command.Side == CLIENT && command.Type == SERVER_CMD_SYNC {
+		CLog("server sent us a sync! ", string(command.Data))
+		// first get the map of entities that need syncing.
+		// this is an array of maps, a key for the entity ID and the value being the components.
+		// NOTE currently every component is sync'ed, even ones that aren't changed and ones that we don't want to.
+		// in the new system, we will have a slice of ones to ignore and these will not be sent across the network.
+		var result []interface{}
+		json.Unmarshal(command.Data, &result)
+		// gor through each entity and check if we need to update the entity in this system
+		for _, encodedEntity := range result {
+			entity := encodedEntity.(map[string]interface{})
+			// get the id of the entity, we now need to check over each entity in the ECS and check if it matches
+			id := uint32(entity["id"].(float64))
+			for i:=0;i<N.ECS.Size;i++{
+				// we found a match
+				if N.ECS.Entities[i].ID == id{
+					// get the components of the entity we need to update
+					oldComponents := N.ECS.GetEntityComponents(id) // old components
+					// unmarshal the entity that we have been sent
+					newComponents := entity["components"].([]interface{}) // this is an array of maps
+					for _, c := range newComponents{
+						comp := c.(map[string]interface{})
+						compID := reflect.ValueOf(comp).MapKeys()[0].String()
+						compValue := comp[compID]
+						// now we need to marshal the compValue into the correct component, and then
+						// update the correct component in the oldComponents slice.
+						// if we find the matching component then deserialize it.
+						for _, oldComp := range oldComponents{
+							if reflect.TypeOf(oldComp).String()[5:] == compID{
+								oldComp.Deserialize(compValue)
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -208,7 +255,7 @@ func (N *NetworkSys) PollServerCommands(){
 		if err != nil{
 			CLog(err)
 		}
-		CLog("received command from the server ", command)
+		//CLog("received command from the server ", command)
 		// indicate that the command is now client side
 		command.Side = CLIENT
 		N.ECS.Event(command)
@@ -234,7 +281,7 @@ func (N *NetworkSys) PollClientCommands(){
 					if err != nil{
 						CLog(err)
 					}
-					SLog("received command from client ", command)
+					//SLog("received command from client ", command)
 					// indicate that the command is now server side
 					command.Side = SERVER
 					N.ECS.Event(command)

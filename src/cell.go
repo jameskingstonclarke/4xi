@@ -10,6 +10,7 @@ const (
 
 type Cell struct {
 	*Entity
+	*SyncComp
 	*PosComp
 	*RenderComp
 	*CellDatComp
@@ -19,6 +20,10 @@ type CellDatComp struct {
 	Type         uint32
 	Arable       float64
 	Contaminated float64
+}
+
+func (C *CellDatComp) Deserialize(data interface{}){
+
 }
 
 func (ECS *ECS) AddCell(pos Vec, cellType uint32){
@@ -37,6 +42,7 @@ func (ECS *ECS) AddCell(pos Vec, cellType uint32){
 	}
 	cell := &Cell{
 		Entity:     ECS.NewEntity(),
+		SyncComp: &SyncComp{Dirty:  false, Hidden: []string{"RenderComp"}},
 		PosComp:    &PosComp{
 			Pos: pos,
 			Facing: V2i(0,0),
