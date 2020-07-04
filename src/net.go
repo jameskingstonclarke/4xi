@@ -22,6 +22,17 @@ const (
 	SERVER_CMD_SYNC      = 0x99
 )
 
+type SyncEntityContainer struct {
+	Id float64
+	Components []SyncComponentContainer
+}
+
+type SyncComponentContainer struct {
+	Id string
+	Data string
+}
+
+
 // this system handles everything network related. it can be in 1 of 2 modes, CLIENT or SERVER. the
 // mode determines the behaviour and will send and listen for the relevant events.
 // the system stores all the sync components. these components are sent across the network
@@ -44,12 +55,10 @@ type SyncComp struct {
 	// TODO for now we don't need this as the component can simply choose not to deserialize itself
 	// names of the components that we DON't want to sync with the server, these will be ignored when syncing.
 	// this is particularly useful for ignoring client side components e.g. RenderComps etc
-	Hidden []string
+	Hidden map[string]struct{}
 }
 
-func (S *SyncComp) Deserialize(data interface{}){
-
-}
+func (S *SyncComp) Test(){}
 
 // used by clients to send commands to the server
 type ServerCommandEvent struct{
@@ -133,6 +142,11 @@ func (N *NetworkSys) PollClientConnections(){
 	}
 }
 
+func Swap(old *Component, new Component){
+	*old = new
+}
+
+
 // TODO CLIENT & SERVER
 // listen for when the server has done processing and is ready to sync
 func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
@@ -156,7 +170,6 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 		// and broadcast it to the clients.
 		entities:="["
 		for i := 0; i < N.Size; i++ {
-			SLog("checking entity...")
 			// if the entity is dirty (it has been changed), it needs synchronizing
 			if N.SyncComps[i].Dirty {
 				// clear the dirty flag ready for the next check
@@ -191,40 +204,79 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 	// check if we have recieved a sync from the server
 	if command.Side == CLIENT && command.Type == SERVER_CMD_SYNC {
 		CLog("server sent us a sync! ", string(command.Data))
-		// first get the map of entities that need syncing.
-		// this is an array of maps, a key for the entity ID and the value being the components.
-		// NOTE currently every component is sync'ed, even ones that aren't changed and ones that we don't want to.
-		// in the new system, we will have a slice of ones to ignore and these will not be sent across the network.
-		var result []interface{}
-		json.Unmarshal(command.Data, &result)
-		// gor through each entity and check if we need to update the entity in this system
-		for _, encodedEntity := range result {
-			entity := encodedEntity.(map[string]interface{})
-			// get the id of the entity, we now need to check over each entity in the ECS and check if it matches
-			id := uint32(entity["id"].(float64))
+		var entities []SyncEntityContainer
+		json.Unmarshal(command.Data, &entities)
+		// loop through every entity that needs syncing
+		for _, e := range entities{
 			for i:=0;i<N.ECS.Size;i++{
 				// we found a match
-				if N.ECS.Entities[i].ID == id{
-					// get the components of the entity we need to update
-					oldComponents := N.ECS.GetEntityComponents(id) // old components
-					// unmarshal the entity that we have been sent
-					newComponents := entity["components"].([]interface{}) // this is an array of maps
-					for _, c := range newComponents{
-						comp := c.(map[string]interface{})
-						compID := reflect.ValueOf(comp).MapKeys()[0].String()
-						compValue := comp[compID]
-						// now we need to marshal the compValue into the correct component, and then
-						// update the correct component in the oldComponents slice.
-						// if we find the matching component then deserialize it.
-						for _, oldComp := range oldComponents{
-							if reflect.TypeOf(oldComp).String()[5:] == compID{
-								oldComp.Deserialize(compValue)
+				if N.ECS.Entities[i].ID == uint32(e.Id){
+					// hidden components of the entity
+					// TODO sort the JSON so the SyncComp is the first one we encounter
+					hidden := map[string]struct{}{"RenderComp":{}}
+					// we now need to go through and update the components
+					oldComponents := N.ECS.GetEntityComponents(uint32(e.Id))
+					// go through each old component and check if it needs updating
+					for _, oldComp := range oldComponents{
+						// check if it matches with a new comp
+						for _, newComp := range e.Components{
+							// check if the component is available
+							_, hiding := hidden[newComp.Id]
+							if !hiding && reflect.TypeOf(oldComp).String()[5:] == newComp.Id{
+								CLog("name: ", reflect.TypeOf(oldComp).String())
+ 								var newCompInstance = reflect.New(reflect.TypeOf(oldComp).Elem()).Interface().(Component)
+								json.Unmarshal([]byte(newComp.Data), &newCompInstance)
+								if newComp.Id == "SyncComp"{
+									hidden = newCompInstance.(*SyncComp).Hidden
+								}
+								switch newComp.Id {
+								case "PosComp":
+									*oldComp.(*PosComp) = *newCompInstance.(*PosComp)
+								case "MovementComp":
+									*oldComp.(*MovementComp) = *newCompInstance.(*MovementComp)
+								}
 							}
 						}
 					}
 				}
 			}
 		}
+
+		//CLog("server sent us a sync! ", string(command.Data))
+		//// first get the map of entities that need syncing.
+		//// this is an array of maps, a key for the entity ID and the value being the components.
+		//// NOTE currently every component is sync'ed, even ones that aren't changed and ones that we don't want to.
+		//// in the new system, we will have a slice of ones to ignore and these will not be sent across the network.
+		//var result []interface{}
+		//json.Unmarshal(command.Data, &result)
+		//// gor through each entity and check if we need to update the entity in this system
+		//for _, encodedEntity := range result {
+		//	entity := encodedEntity.(map[string]interface{})
+		//	// get the id of the entity, we now need to check over each entity in the ECS and check if it matches
+		//	id := uint32(entity["Id"].(float64))
+		//	for i:=0;i<N.ECS.Size;i++{
+		//		// we found a match
+		//		if N.ECS.Entities[i].ID == id{
+		//			// get the components of the entity we need to update
+		//			oldComponents := N.ECS.GetEntityComponents(id) // old components
+		//			// unmarshal the entity that we have been sent
+		//			newComponents := entity["Components"].([]interface{}) // this is an array of maps
+		//			for _, c := range newComponents{
+		//				comp := c.(map[string]interface{})
+		//				compID := reflect.ValueOf(comp).MapKeys()[0].String()
+		//				compValue := comp[compID]
+		//				// now we need to marshal the compValue into the correct component, and then
+		//				// update the correct component in the oldComponents slice.
+		//				// if we find the matching component then deserialize it.
+		//				for _, oldComp := range oldComponents{
+		//					if reflect.TypeOf(oldComp).String()[5:] == compID{
+		//						oldComp.Deserialize(compValue)
+		//					}
+		//				}
+		//			}
+		//		}
+		//	}
+		//}
 	}
 }
 

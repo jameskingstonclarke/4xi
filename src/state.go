@@ -22,10 +22,7 @@ type StateComp struct {
 	TakenTurn bool
 }
 
-func (S *StateComp) Deserialize(data interface{}){
-
-}
-
+func (S *StateComp) Test(){}
 // represents the state of the game
 // it keeps track of the turn etc
 type StateSys struct {

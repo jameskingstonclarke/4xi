@@ -29,7 +29,7 @@ type SettlementStatsComp struct {
 	Production float64
 }
 
-func (S *SettlementStatsComp) Deserialize(data interface{}){}
+func (S *SettlementStatsComp) Test(){}
 
 func (ECS *ECS) AddSettlement(name string, pos Vec){
 
@@ -39,7 +39,7 @@ func (ECS *ECS) AddSettlement(name string, pos Vec){
 
 	settlement := &Settlement{
 		Entity:          ECS.NewEntity(),
-		SyncComp: &SyncComp{Dirty: false, Hidden: []string{"RenderComp"}},
+		SyncComp: &SyncComp{Dirty: false, Hidden: map[string]struct{}{"RenderComp": {}}},
 		PosComp:         &PosComp{
 			Pos: pos,
 			Facing: V2i(0,0),

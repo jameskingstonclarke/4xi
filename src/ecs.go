@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type ECS struct {
@@ -44,20 +45,34 @@ func (ECS *ECS) AddEntity(Entity *Entity, components... Component){
 // TODO make this better, as its gonna be hard to unmarshal the bytes...
 func (ECS *ECS) SerializeEntity(id uint32) string{
 	components:=ECS.GetEntityComponents(id)
-	buf := fmt.Sprintf("{\"id\":%d, \"components\":[",id)
+	buf := fmt.Sprintf("{\"Id\":%d, \"Components\":[",id)
 	for _, comp := range components{
 		compID := reflect.TypeOf(comp).String()[5:]
 		marshal, err := json.Marshal(&comp)
 		if err != nil{
 			SLogErr(err)
 		}
-		comp := fmt.Sprintf("{\"%s\":%s},", compID, string(marshal))
+		newMarshal := strings.Replace(string(marshal), "\"", "\\\"", -1)
+		comp := fmt.Sprintf("{\"Id\":\"%s\", \"Data\":\"%s\"},", compID, newMarshal)
 		buf+=comp
 	}
 	buf = buf[:len(buf)-1] // remove the last ','
 	buf+="]}"
 	return buf
-
+	//components:=ECS.GetEntityComponents(id)
+	//buf := fmt.Sprintf("{\"Id\":%d, \"Components\":[",id)
+	//for _, comp := range components{
+	//	compID := reflect.TypeOf(comp).String()[5:]
+	//	marshal, err := json.Marshal(&comp)
+	//	if err != nil{
+	//		SLogErr(err)
+	//	}
+	//	comp := fmt.Sprintf("{\"%s\":%s},", compID, string(marshal))
+	//	buf+=comp
+	//}
+	//buf = buf[:len(buf)-1] // remove the last ','
+	//buf+="]}"
+	//return buf
 }
 
 // get all the components attached to a particular entity
@@ -188,7 +203,8 @@ type Closer interface {
 }
 
 type Component interface {
-	Deserialize(data interface{})
+	Test()
+	//Deserialize(data interface{})
 	//Serialize() []byte
 }
 

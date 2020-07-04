@@ -22,6 +22,8 @@ type CellDatComp struct {
 	Contaminated float64
 }
 
+func (C *CellDatComp) Test(){}
+
 func (C *CellDatComp) Deserialize(data interface{}){
 
 }
@@ -42,7 +44,7 @@ func (ECS *ECS) AddCell(pos Vec, cellType uint32){
 	}
 	cell := &Cell{
 		Entity:     ECS.NewEntity(),
-		SyncComp: &SyncComp{Dirty:  false, Hidden: []string{"RenderComp"}},
+		SyncComp: &SyncComp{Dirty:  false, Hidden: map[string]struct{}{"RenderComp": {}}},
 		PosComp:    &PosComp{
 			Pos: pos,
 			Facing: V2i(0,0),

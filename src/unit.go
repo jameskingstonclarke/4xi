@@ -21,13 +21,13 @@ type HealthComponent struct {
 	Health float64
 }
 
-func (H *HealthComponent) Deserialize(data interface{}){}
+func (H *HealthComponent) Test(){}
 
 type AttackComponent struct {
 	Damage float64
 }
 
-func (A *AttackComponent) Deserialize(data interface{}){}
+func (A *AttackComponent) Test(){}
 
 type UnitSys struct {
 	*SystemBase
@@ -43,7 +43,7 @@ func (ECS *ECS) AddUnit(pos Vec) uint32{
 	unit := &Unit{
 		Entity:          ECS.NewEntity(),
 		// we hide the RenderComponent from network syncs
-		SyncComp: &SyncComp{Dirty: false, Hidden: []string{"RenderComp"}},
+		SyncComp: &SyncComp{Dirty: false, Hidden: map[string]struct{}{"RenderComp": {}}},
 		PosComp: &PosComp{Pos: pos},
 		MovementComp: &MovementComp{Target: pos, Speed:  1},
 		HealthComponent: &HealthComponent{Health: 1},
@@ -82,7 +82,11 @@ func (U *UnitSys) Init(){
 	U.SelectedUnit = 1<<31
 	U.ECS.AddUnit(V2i(20,20))
 }
-func (U *UnitSys) Update(){}
+func (U *UnitSys) Update(){
+	if U.ECS.HostMode == CLIENT{
+		//CLog("id: ", U.Entities[0].ID)
+	}
+}
 func (U *UnitSys) Remove(){}
 
 func (U *UnitSys) ListenClickEvent(event ClickEvent){

@@ -9,19 +9,14 @@ type PosComp struct {
 	View   uint8
 }
 
-func (P *PosComp) Deserialize(data interface{}){
-	m := data.(map[string]interface{})
-	pos := m["Pos"].(map[string]interface{})
-	P.Pos.X = pos["X"].(float64)
-	P.Pos.Y = pos["Y"].(float64)
-}
+func (P *PosComp) Test(){}
 
 type MovementComp struct{
 	Target Vec
 	Speed  float64
 }
 
-func (M *MovementComp) Deserialize(data interface{}){}
+func (M *MovementComp) Test(){}
 
 type MovementSys struct {
 	*SystemBase
