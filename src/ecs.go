@@ -3,6 +3,7 @@ package src
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strings"
 	"sync"
@@ -15,7 +16,7 @@ type ECS struct {
 	// store a map of each priority level containing systems
 	Systems [][]System
 	// store a reference to each entity
-	Entities []*Entity
+	Entities map[uint32]*Entity
 	// we store a type registry to store the type of a component
 	EntityNameTypeRegistry map[string]reflect.Type	// we store a type registry to store the type of a component
 	EntityComponentTypeRegistry map[string][]reflect.Type
@@ -31,6 +32,7 @@ type ECS struct {
 func NewECS(mode uint8) *ECS{
 	return &ECS{
 		HostMode: mode,
+		Entities: make(map[uint32]*Entity),
 		EntityComponentLookup: make(map[uint32]uint32),
 		EntityNameTypeRegistry: make(map[string]reflect.Type),
 		EntityComponentTypeRegistry: make(map[string][]reflect.Type),
@@ -54,7 +56,11 @@ func (ECS *ECS) RegisterEntity(tag string, t reflect.Type, components reflect.Va
 // add an entity to the system. this is useful for querying components
 // this is likely only used to know which components an entity has
 func (ECS *ECS) AddEntity(Entity *Entity, components... Component){
-	ECS.Entities = append(ECS.Entities, Entity)
+	_, exists := ECS.Entities[Entity.ID]
+	if exists{
+		SLog("entity with ID ", Entity.ID, " already exists!")
+	}
+	ECS.Entities[Entity.ID] = Entity
 	// set a marker for the component lookup index
 	ECS.EntityComponentLookup[Entity.ID] = uint32(len(ECS.Components))
 	// TODO this may be wrong, as we might not actually add all the components in this function???
@@ -165,7 +171,6 @@ func (ECS *ECS) RegisterSystem(System System){
 
 // fire an event into the ECS
 func (ECS *ECS) Event(Event Event){
-	ECS.EventMut.Lock()
 	// check each system to see if it is capable of hearing the event
 	for _, s := range ECS.Sys(){
 		method := reflect.ValueOf(s).MethodByName("Listen"+reflect.TypeOf(Event).String()[4:])
@@ -174,7 +179,6 @@ func (ECS *ECS) Event(Event Event){
 			method.Call([]reflect.Value{reflect.ValueOf(Event)})
 		}
 	}
-	ECS.EventMut.Unlock()
 }
 
 type Entity struct {
@@ -187,8 +191,8 @@ type Entity struct {
 }
 
 func (ECS *ECS) NewEntity(tag string) *Entity{
-	e := &Entity{ID: ECS.EId, Tag: tag}
-	//e := &Entity{ID: uint32(rand.Intn(10000)), Tag: tag}
+	//e := &Entity{ID: ECS.EId, Tag: tag}
+	e := &Entity{ID: uint32(rand.Intn(10000)), Tag: tag}
 	ECS.EId++
 	return e
 }

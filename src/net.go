@@ -109,9 +109,6 @@ func (N *NetworkSys) Init(){
 		}
 		N.Listener = listener
 
-
-		// TODO we need a way to concurrently poll connections AND
-
 		go N.PollClientConnections()
 		// start listening for client commands
 		go N.PollClientCommands()
@@ -144,6 +141,7 @@ func (N *NetworkSys) PollClientConnections(){
 			sync.Dirty = true
 		}
 		N.ECS.Event(ServerCommandEvent{Side: SERVER, Type: SERVER_CMD_SYNC})
+		SLog("synced new player!")
 	}
 }
 
@@ -212,26 +210,22 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 		json.Unmarshal(command.Data, &entities)
 		// loop through every entity that needs syncing
 		for _, e := range entities{
-			match := false
-			for i:=0;i<N.ECS.Size;i++{
-				// we found a match
-				if N.ECS.Entities[i].ID == uint32(e.Id){
-					match = true
-					// we now need to go through and update the components
-					oldComponents := N.ECS.GetEntityComponents(uint32(e.Id))
-					// go through each old component and check if it needs updating
-					for _, oldComp := range oldComponents{
-						// check if it matches with a new comp
-						for _, newComp := range e.Components{
-							if reflect.TypeOf(oldComp).String()[5:] == newComp.Id{
- 								var newCompInstance = reflect.New(reflect.TypeOf(oldComp).Elem()).Interface().(Component)
-								json.Unmarshal([]byte(newComp.Data), &newCompInstance)
-								switch newComp.Id {
-								case "PosComp":
-									*oldComp.(*PosComp) = *newCompInstance.(*PosComp)
-								case "MovementComp":
-									*oldComp.(*MovementComp) = *newCompInstance.(*MovementComp)
-								}
+			_, found := N.ECS.Entities[uint32(e.Id)]
+			if found{
+				// we now need to go through and update the components
+				oldComponents := N.ECS.GetEntityComponents(uint32(e.Id))
+				// go through each old component and check if it needs updating
+				for _, oldComp := range oldComponents{
+					// check if it matches with a new comp
+					for _, newComp := range e.Components{
+						if reflect.TypeOf(oldComp).String()[5:] == newComp.Id{
+							var newCompInstance = reflect.New(reflect.TypeOf(oldComp).Elem()).Interface().(Component)
+							json.Unmarshal([]byte(newComp.Data), &newCompInstance)
+							switch newComp.Id {
+							case "PosComp":
+								*oldComp.(*PosComp) = *newCompInstance.(*PosComp)
+							case "MovementComp":
+								*oldComp.(*MovementComp) = *newCompInstance.(*MovementComp)
 							}
 						}
 					}
@@ -240,7 +234,7 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 			// if our ECS does not contain the entity, then we need to add it to our ECS.
 			// this is used for when the server created an entity and needs to sync it with
 			// ours
-			if !match{
+			if !found{
 				// create a new instance of the entity
 				entityInstance := reflect.New(N.ECS.EntityNameTypeRegistry[e.Tag].Elem()).Interface()
 				// now go through and create the actual components for the entity

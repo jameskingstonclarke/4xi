@@ -90,12 +90,10 @@ func (U *UnitSys) Init(){
 		reflect.TypeOf(&Unit{}),
 		reflect.ValueOf(&Unit{}).Elem(),
 	)
+	// initialise the selected unit to nil essentially
+	U.SelectedUnit = 1 << 31
 	if U.ECS.HostMode == SERVER {
-		// initialise the selected unit to nil essentially
-		U.SelectedUnit = 1 << 31
 		U.ECS.AddUnit(U.ECS.CreateUnit(V2i(20, 20), true))
-		U.ECS.AddUnit(U.ECS.CreateUnit(V2i(10, 10), true))
-		U.ECS.AddUnit(U.ECS.CreateUnit(V2i(10, 10), true))
 		U.ECS.AddUnit(U.ECS.CreateUnit(V2i(10, 10), true))
 	}
 }
@@ -108,6 +106,7 @@ func (U *UnitSys) ListenClickEvent(event ClickEvent){
 		for i:=0;i<U.Size;i++{
 			// see if we clicked on a unit
 			if U.PosComps[i].Pos.Equals(event.WorldPos){
+				CLog("meme", U.SelectedUnit)
 				// select the unit
 				if U.SelectedUnit == 1<<31{
 					CLog("selected unit ", U.Entities[i].ID)
@@ -119,11 +118,9 @@ func (U *UnitSys) ListenClickEvent(event ClickEvent){
 	}else if event.Layer == CELL_DEPTH && event.Type == PRESS && event.Button == '2' && U.SelectedUnit != 1<<31{
 		for i:=0; i<U.Size; i++{
 			if U.Entities[i].ID == U.SelectedUnit{
+				CLog("sending move unit command!")
 				id := U.Entities[i].ID
 				U.SelectedUnit = 1<<31
-				// TODO move this server side
-				//// move the unit
-
 				// broadcast a move command to the server
 				U.ECS.Event(ClientCommandEvent{
 					EventBase: EventBase{},
@@ -137,52 +134,13 @@ func (U *UnitSys) ListenClickEvent(event ClickEvent){
 	}
 }
 
-// TODO CLIENT
-// listen for sync event to update our state
-func (U *UnitSys) ListenServerCommandEvent(event ServerCommandEvent){
-	if event.Side == CLIENT{
-		switch event.Type{
-		case SERVER_CMD_NEXT_TURN:
-		//case SERVER_CMD_SYNC:
-		//	CLog("server sent us a sync! ", string(event.Data))
-		//	// first get the map of entities that need syncing
-		//	var result []interface{}
-		//	json.Unmarshal(event.Data, &result)
-		//	// gor through each entity and check if we need to update the entity in this system
-		//	for _, encodedEntity := range result{
-		//		entity := encodedEntity.(map[string]interface{})
-		//		id := uint32(entity["id"].(float64))
-		//		for i:=0;i<U.Size;i++{
-		//			if U.Entities[i].ID == id{
-		//				// unmarshal the entity now
-		//				components := entity["components"].([]interface{})
-		//				for _, component := range components{
-		//					// each component is a map, with the key being the name and the value the actual component
-		//					compMap := component.(map[string]interface{})
-		//					// get the first key from the map
-		//					compID := reflect.ValueOf(compMap).MapKeys()[0].String()
-		//					compValue := compMap[compID].(map[string]interface{})
-		//					CLog("comp ID: ", compID, " value: ", compValue)
-		//					// update the pos comp and the movement comp
-		//					// unmarshal here
-		//					switch compID{
-		//					case "PosComp":
-		//					}
-		//				}
-		//			}
-		//		}
-		//
-		//	}
-		}
-	}
-}
-
 // TODO SERVER
 // listen for when the player wants to move a unit
 func (U *UnitSys) ListenClientCommandEvent(event ClientCommandEvent){
 	if event.Side == SERVER {
 		switch event.Type {
 		case CLIENT_CMD_MOVE_UNIT:
+			SLog("received command to move unit")
 			var result map[string]interface{}
 			json.Unmarshal([]byte(event.Data), &result)
 			id := uint32(result["id"].(float64))
