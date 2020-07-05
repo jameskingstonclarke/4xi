@@ -25,7 +25,7 @@ func (W *WorldSys) Init(){
 	W.ECS.RegisterEntity("cell", reflect.TypeOf(&Cell{}), reflect.ValueOf(&Cell{}).Elem())
 	if W.ECS.HostMode == SERVER {
 		W.Width = 30
-		W.Height = 20
+		W.Height = 30
 		// generate the cells
 		p := perlin.NewPerlin(2, 5, 5, 1)
 		for x := 0; x < W.Width; x++ {

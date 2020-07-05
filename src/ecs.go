@@ -10,7 +10,6 @@ import (
 )
 
 type ECS struct {
-	EId uint32
 	// number of entities
 	Size int
 	// store a map of each priority level containing systems
@@ -191,9 +190,12 @@ type Entity struct {
 }
 
 func (ECS *ECS) NewEntity(tag string) *Entity{
-	//e := &Entity{ID: ECS.EId, Tag: tag}
 	e := &Entity{ID: uint32(rand.Intn(10000)), Tag: tag}
-	ECS.EId++
+	_, found:=ECS.Entities[e.ID]
+	for found==true {
+		e.ID = uint32(rand.Intn(10000))
+		_, found=ECS.Entities[e.ID]
+	}
 	return e
 }
 
