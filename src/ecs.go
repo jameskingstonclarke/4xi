@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 type ECS struct {
@@ -15,16 +16,39 @@ type ECS struct {
 	Systems [][]System
 	// store a reference to each entity
 	Entities []*Entity
+	// we store a type registry to store the type of a component
+	EntityNameTypeRegistry map[string]reflect.Type	// we store a type registry to store the type of a component
+	EntityComponentTypeRegistry map[string][]reflect.Type
 	// store a reference to the components attached to the entity (linearly added)
 	Components []Component
 	// used as an index lookup to find the position of the first component of the particular entity
 	EntityComponentLookup map[uint32]uint32
 	// whether the ECS is a server or client
 	HostMode uint8
+	EventMut sync.Mutex
 }
 
 func NewECS(mode uint8) *ECS{
-	return &ECS{HostMode: mode, EntityComponentLookup: make(map[uint32]uint32)}
+	return &ECS{
+		HostMode: mode,
+		EntityComponentLookup: make(map[uint32]uint32),
+		EntityNameTypeRegistry: make(map[string]reflect.Type),
+		EntityComponentTypeRegistry: make(map[string][]reflect.Type),
+	}
+}
+
+// register an entity by adding its type, and components to the ECS
+func (ECS *ECS) RegisterEntity(tag string, t reflect.Type, components reflect.Value){
+	// register the entity type to the ECS
+	ECS.EntityNameTypeRegistry[tag] = t
+	// get the types of the components
+	var types []reflect.Type
+	for i := 1; i < components.NumField(); i++ {
+		fieldType := components.Type().Field(i).Type
+		types = append(types, fieldType)
+	}
+	// register the type of the components to the ECS
+	ECS.EntityComponentTypeRegistry[tag] = types
 }
 
 // add an entity to the system. this is useful for querying components
@@ -41,11 +65,21 @@ func (ECS *ECS) AddEntity(Entity *Entity, components... Component){
 	ECS.Size++
 }
 
+func (ECS *ECS) GetEntity(id uint32) *Entity{
+	for _, e := range ECS.Entities{
+		if e.ID == id{
+			return e
+		}
+	}
+	return nil
+}
+
 // serialize an entity by serializing each component
 // TODO make this better, as its gonna be hard to unmarshal the bytes...
 func (ECS *ECS) SerializeEntity(id uint32) string{
+	entity := ECS.GetEntity(id)
 	components:=ECS.GetEntityComponents(id)
-	buf := fmt.Sprintf("{\"Id\":%d, \"Components\":[",id)
+	buf := fmt.Sprintf("{\"Id\":%d, \"Tag\":\"%s\", \"Components\":[",id, entity.Tag)
 	for _, comp := range components{
 		compID := reflect.TypeOf(comp).String()[5:]
 		marshal, err := json.Marshal(&comp)
@@ -59,20 +93,6 @@ func (ECS *ECS) SerializeEntity(id uint32) string{
 	buf = buf[:len(buf)-1] // remove the last ','
 	buf+="]}"
 	return buf
-	//components:=ECS.GetEntityComponents(id)
-	//buf := fmt.Sprintf("{\"Id\":%d, \"Components\":[",id)
-	//for _, comp := range components{
-	//	compID := reflect.TypeOf(comp).String()[5:]
-	//	marshal, err := json.Marshal(&comp)
-	//	if err != nil{
-	//		SLogErr(err)
-	//	}
-	//	comp := fmt.Sprintf("{\"%s\":%s},", compID, string(marshal))
-	//	buf+=comp
-	//}
-	//buf = buf[:len(buf)-1] // remove the last ','
-	//buf+="]}"
-	//return buf
 }
 
 // get all the components attached to a particular entity
@@ -145,6 +165,7 @@ func (ECS *ECS) RegisterSystem(System System){
 
 // fire an event into the ECS
 func (ECS *ECS) Event(Event Event){
+	ECS.EventMut.Lock()
 	// check each system to see if it is capable of hearing the event
 	for _, s := range ECS.Sys(){
 		method := reflect.ValueOf(s).MethodByName("Listen"+reflect.TypeOf(Event).String()[4:])
@@ -153,17 +174,21 @@ func (ECS *ECS) Event(Event Event){
 			method.Call([]reflect.Value{reflect.ValueOf(Event)})
 		}
 	}
+	ECS.EventMut.Unlock()
 }
 
 type Entity struct {
 	// Unique id for this entity
 	ID   		   uint32
+	// used to tag the entity with a string identifier
+	Tag            string
 	// used as a util for the ECS
 	ComponentCount uint32
 }
 
-func (ECS *ECS) NewEntity() *Entity{
-	e := &Entity{ID: ECS.EId}
+func (ECS *ECS) NewEntity(tag string) *Entity{
+	e := &Entity{ID: ECS.EId, Tag: tag}
+	//e := &Entity{ID: uint32(rand.Intn(10000)), Tag: tag}
 	ECS.EId++
 	return e
 }
@@ -202,11 +227,7 @@ type Closer interface {
 	Close()
 }
 
-type Component interface {
-	Test()
-	//Deserialize(data interface{})
-	//Serialize() []byte
-}
+type Component interface {}
 
 type Event interface {
 }

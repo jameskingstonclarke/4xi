@@ -31,7 +31,7 @@ func (P *PlayerStatsComp) Test(){}
 
 func (ECS *ECS) AddPlayer(name string) uint32{
 	player := &Player{
-		Entity: ECS.NewEntity(),
+		Entity: ECS.NewEntity("player"),
 		SyncComp: &SyncComp{Dirty: false},
 		PlayerStatsComp:   &PlayerStatsComp{
 			Name: name,
@@ -68,12 +68,6 @@ func (P *PlayerSys) Update(){
 		// player on client side sends a client command to the server indicating it wants the next turn
 		P.ECS.Event(ClientCommandEvent{Type: CLIENT_CMD_NEXT_TURN, Side: CLIENT})
 		P.Done = true
-	}
-
-	// used for testing so we can set the dirty flag on the SyncComp
-	if P.ECS.HostMode & CLIENT != 0 && InputBuffer.KeyPressed == 'p'{
-		CLog("dirty!")
-		P.SyncComps[0].Dirty = true
 	}
 }
 

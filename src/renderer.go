@@ -16,8 +16,8 @@ const (
 	UI_DEPTH    	 = 0x3
 )
 
-func Buf(width, height int) *tcell.CellBuffer {
-	b := &tcell.CellBuffer{}
+func Buf(width, height int) tcell.CellBuffer {
+	b := tcell.CellBuffer{}
 	b.Resize(width, height)
 	return b
 }
@@ -44,13 +44,13 @@ type RendererSys struct {
 type RenderComp struct {
 	Depth int
 	Offset  Vec
-	Buffer *tcell.CellBuffer
+	Buffer tcell.CellBuffer
 }
 
 func (R *RenderComp) Test(){}
 
 // fill a cell buffer with text
-func BufText(buf *tcell.CellBuffer, text string, style tcell.Style, pos Vec) *tcell.CellBuffer{
+func BufText(buf tcell.CellBuffer, text string, style tcell.Style, pos Vec) tcell.CellBuffer{
 	for i, r := range text{
 		buf.SetContent(int(pos.X)+i, int(pos.Y), r, nil, style)
 	}
@@ -58,14 +58,14 @@ func BufText(buf *tcell.CellBuffer, text string, style tcell.Style, pos Vec) *tc
 }
 
 // fill a cell buffer with text
-func BufRune(buf *tcell.CellBuffer, rune rune, style tcell.Style, pos Vec) *tcell.CellBuffer{
+func BufRune(buf tcell.CellBuffer, rune rune, style tcell.Style, pos Vec) tcell.CellBuffer{
 	buf.SetContent(int(pos.X), int(pos.Y), rune, nil, style)
 	return buf
 }
 
 // fill a cell buffer with text
-func FillBufRune(rune rune, style tcell.Style)*tcell.CellBuffer{
-	buf := &tcell.CellBuffer{}
+func FillBufRune(rune rune, style tcell.Style) tcell.CellBuffer{
+	buf := tcell.CellBuffer{}
 	buf.Resize(1,1)
 	buf.SetContent(0, 0, rune, nil, style)
 	return buf

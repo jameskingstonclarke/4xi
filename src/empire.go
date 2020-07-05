@@ -1,5 +1,7 @@
 package src
 
+import "reflect"
+
 // empire system
 type EmpireSys struct {
 	*SystemBase
@@ -10,6 +12,7 @@ type EmpireSys struct {
 // empire entity
 type Empire struct{
 	*Entity
+	*SyncComp
 	*PosComp
 	*EmpireStatsComp
 }
@@ -29,10 +32,11 @@ type EmpireStatsComp struct {
 
 func (E *EmpireStatsComp) Deserialize(data interface{}){}
 
-func (ECS *ECS) AddEmpire(name string, pos Vec){
+func (ECS *ECS) AddEmpire(name string, pos Vec, dirty bool){
 	empire := &Empire{
-		Entity:          ECS.NewEntity(),
-		PosComp:         &PosComp{
+		Entity: ECS.NewEntity("empire"),
+		SyncComp: &SyncComp{Dirty: dirty},
+		PosComp: &PosComp{
 			Pos: pos,
 			Facing: V2i(0,0),
 		},
@@ -41,9 +45,12 @@ func (ECS *ECS) AddEmpire(name string, pos Vec){
 			Money: 0,
 		},
 	}
+	ECS.AddEntity(empire.Entity, empire.SyncComp, empire.PosComp, empire.EmpireStatsComp)
 	// add the cell to the systems
 	for _, system := range ECS.Sys(){
 		switch s := system.(type){
+		case *NetworkSys:
+			s.AddEntity(empire.Entity, empire.SyncComp)
 		case *EmpireSys:
 			s.AddEntity(empire.Entity, empire.PosComp, empire.EmpireStatsComp)
 		}
@@ -51,7 +58,10 @@ func (ECS *ECS) AddEmpire(name string, pos Vec){
 }
 
 func (E *EmpireSys) Init(){
-	E.ECS.AddEmpire("egypt", V2i(0,0))
+	E.ECS.RegisterEntity("empire", reflect.TypeOf(&Empire{}), reflect.ValueOf(&Empire{}).Elem())
+	if E.ECS.HostMode == SERVER {
+		E.ECS.AddEmpire("egypt", V2i(0, 0), true)
+	}
 }
 
 

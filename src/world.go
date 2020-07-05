@@ -3,6 +3,7 @@ package src
 import (
 	"fmt"
 	"github.com/aquilax/go-perlin"
+	"reflect"
 )
 
 type WorldSys struct {
@@ -21,23 +22,25 @@ func (W *WorldSys) AddEntity(Entity *Entity, CellDatComp *CellDatComp, PosComp *
 }
 
 func (W *WorldSys) Init(){
-	CLog("world system init!")
-	W.Width = 50
-	W.Height = 25
-	// generate the cells
-	p := perlin.NewPerlin(2,5,5, 1)
-	for x:=0;x<W.Width;x++{
-		for y:=0;y<W.Height;y++{
-			var cellType uint32
-			noise := p.Noise2D(float64(x)/150,float64(y)/150)*-1
-			if noise > 0.2{
-				cellType = CELL_WATER
-			}else if noise > 0.1{
-				cellType = CELL_BEACH
-			}else{
-				cellType = CELL_PLAINS
+	W.ECS.RegisterEntity("cell", reflect.TypeOf(&Cell{}), reflect.ValueOf(&Cell{}).Elem())
+	if W.ECS.HostMode == SERVER {
+		W.Width = 30
+		W.Height = 20
+		// generate the cells
+		p := perlin.NewPerlin(2, 5, 5, 1)
+		for x := 0; x < W.Width; x++ {
+			for y := 0; y < W.Height; y++ {
+				var cellType uint32
+				noise := p.Noise2D(float64(x)/150, float64(y)/150) * -1
+				if noise > 0.2 {
+					cellType = CELL_WATER
+				} else if noise > 0.1 {
+					cellType = CELL_BEACH
+				} else {
+					cellType = CELL_PLAINS
+				}
+				W.ECS.AddCell(W.ECS.CreateCell(V2i(x, y), cellType, true))
 			}
-			W.ECS.AddCell(V2i(x,y), cellType)
 		}
 	}
 }

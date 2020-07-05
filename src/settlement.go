@@ -3,6 +3,7 @@ package src
 import (
 	"fmt"
 	"github.com/gdamore/tcell"
+	"reflect"
 )
 
 // settlement system
@@ -31,24 +32,30 @@ type SettlementStatsComp struct {
 
 func (S *SettlementStatsComp) Test(){}
 
-func (ECS *ECS) AddSettlement(name string, pos Vec){
-
-	b := Buf(len(name),2)
-	b = BufText(b, name, tcell.StyleDefault.Foreground(tcell.ColorRed), V2i(0,0))
-	b = BufRune(b, '▲',tcell.StyleDefault.Foreground(tcell.ColorRed), V2i(len(name)/2, 1))
-
+func (ECS *ECS) CreateSettlement(name string, pos Vec, dirty bool) *Settlement{
 	settlement := &Settlement{
-		Entity:          ECS.NewEntity(),
-		SyncComp: &SyncComp{Dirty: false, Hidden: map[string]struct{}{"RenderComp": {}}},
-		PosComp:         &PosComp{
+		Entity: ECS.NewEntity("settlement"),
+		SyncComp: &SyncComp{Dirty: dirty, Hidden: map[string]struct{}{"RenderComp": {}}},
+		PosComp:  &PosComp{
 			Pos: pos,
 			Facing: V2i(0,0),
 		},
 		SettlementStatsComp: &SettlementStatsComp{Name: name},
-		RenderComp: &RenderComp{Depth: STRUCTURES_DEPTH, Buffer: b, Offset: V2i(-len(name)/2,-1)},
+		RenderComp: nil,
+	}
+	return settlement
+}
+
+func (ECS *ECS) AddSettlement(settlement *Settlement) uint32{
+
+	if ECS.HostMode == CLIENT{
+		b := Buf(len(settlement.Name),2)
+		b = BufText(b, settlement.Name, tcell.StyleDefault.Foreground(tcell.ColorRed), V2i(0,0))
+		b = BufRune(b, '▲',tcell.StyleDefault.Foreground(tcell.ColorRed), V2i(len(settlement.Name)/2, 1))
+		settlement.RenderComp = &RenderComp{Depth: STRUCTURES_DEPTH, Buffer: b, Offset: V2i(-len(settlement.Name)/2,-1)}
 	}
 
-	ECS.AddEntity(settlement.Entity, settlement.SyncComp, settlement.PosComp, settlement.SettlementStatsComp)
+	ECS.AddEntity(settlement.Entity, settlement.SyncComp, settlement.PosComp, settlement.SettlementStatsComp, settlement.RenderComp)
 
 	// add the cell to the systems
 	for _, system := range ECS.Sys(){
@@ -61,12 +68,18 @@ func (ECS *ECS) AddSettlement(name string, pos Vec){
 			s.AddEntity(settlement.Entity, settlement.PosComp, settlement.SettlementStatsComp)
 		}
 	}
+	return settlement.ID
 }
 
 func (S *SettlementSys) Init(){
-	S.ECS.AddSettlement("cairo", V2i(0,0))
-	S.ECS.AddSettlement("tokyo", V2i(20,15))
-	S.ECS.AddSettlement("london", V2i(5,12))
+	S.ECS.RegisterEntity("settlement",
+		reflect.TypeOf(&Settlement{}),
+		reflect.ValueOf(&Settlement{}).Elem())
+	if S.ECS.HostMode == SERVER {
+		S.ECS.AddSettlement(S.ECS.CreateSettlement("cairo", V2i(0, 0), true))
+		S.ECS.AddSettlement(S.ECS.CreateSettlement("tokyo", V2i(20, 15), true))
+		S.ECS.AddSettlement(S.ECS.CreateSettlement("london", V2i(5, 12), true))
+	}
 }
 
 

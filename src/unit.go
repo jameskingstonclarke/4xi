@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gdamore/tcell"
+	"reflect"
 )
 
 type Unit struct {
@@ -39,16 +40,23 @@ type UnitSys struct {
 	SelectedUnit  uint32
 }
 
-func (ECS *ECS) AddUnit(pos Vec) uint32{
+func (ECS *ECS) CreateUnit(pos Vec, dirty bool) *Unit{
 	unit := &Unit{
-		Entity:          ECS.NewEntity(),
+		Entity: ECS.NewEntity("unit"),
 		// we hide the RenderComponent from network syncs
-		SyncComp: &SyncComp{Dirty: false, Hidden: map[string]struct{}{"RenderComp": {}}},
+		SyncComp: &SyncComp{Dirty: dirty, Hidden: map[string]struct{}{"RenderComp": {}}},
 		PosComp: &PosComp{Pos: pos},
 		MovementComp: &MovementComp{Target: pos, Speed:  1},
 		HealthComponent: &HealthComponent{Health: 1},
 		AttackComponent: &AttackComponent{Damage: .25},
-		RenderComp: &RenderComp{Depth:  UNITS_DEPTH, Buffer: FillBufRune('u', tcell.StyleDefault)},
+		RenderComp: nil,
+	}
+	return unit
+}
+
+func (ECS *ECS) AddUnit(unit *Unit) uint32{
+	if ECS.HostMode == CLIENT{
+		unit.RenderComp = &RenderComp{Depth:  UNITS_DEPTH, Buffer: FillBufRune('u', tcell.StyleDefault)}
 	}
 	// register the entity to the ECS
 	ECS.AddEntity(unit.Entity, unit.SyncComp, unit.PosComp, unit.MovementComp, unit.HealthComponent, unit.AttackComponent, unit.RenderComp)
@@ -77,16 +85,22 @@ func (U *UnitSys) AddEntity(Entity *Entity, SyncComp *SyncComp, PosComp *PosComp
 }
 
 func (U *UnitSys) Init(){
-	CLog("unit system init!")
-	// initialise the selected unit to nil essentially
-	U.SelectedUnit = 1<<31
-	U.ECS.AddUnit(V2i(20,20))
-}
-func (U *UnitSys) Update(){
-	if U.ECS.HostMode == CLIENT{
-		//CLog("id: ", U.Entities[0].ID)
+	// register the unit to the ecs
+	U.ECS.RegisterEntity("unit",
+		reflect.TypeOf(&Unit{}),
+		reflect.ValueOf(&Unit{}).Elem(),
+	)
+	if U.ECS.HostMode == SERVER {
+		// initialise the selected unit to nil essentially
+		U.SelectedUnit = 1 << 31
+		U.ECS.AddUnit(U.ECS.CreateUnit(V2i(20, 20), true))
+		U.ECS.AddUnit(U.ECS.CreateUnit(V2i(10, 10), true))
+		U.ECS.AddUnit(U.ECS.CreateUnit(V2i(10, 10), true))
+		U.ECS.AddUnit(U.ECS.CreateUnit(V2i(10, 10), true))
 	}
 }
+
+func (U *UnitSys) Update(){}
 func (U *UnitSys) Remove(){}
 
 func (U *UnitSys) ListenClickEvent(event ClickEvent){
