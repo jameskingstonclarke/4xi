@@ -64,7 +64,7 @@ func (W *WorldSys) ListenClickEvent(event ClickEvent){
 				W.ECS.Event(NewWinEvent{
 					ID:    fmt.Sprintf("cell: %f, %f", event.WorldPos.X, event.WorldPos.Y),
 					Title: fmt.Sprintf("cell: %f, %f", event.WorldPos.X, event.WorldPos.Y),
-					Text: map[string]func(){
+					Text: map[interface{}]func(){
 						fmt.Sprintf("type %d", W.CellDatComps[i].Type):nil,
 						fmt.Sprintf("arable %f", W.CellDatComps[i].Arable):nil,
 						fmt.Sprintf("contaminated %f", W.CellDatComps[i].Contaminated):nil,

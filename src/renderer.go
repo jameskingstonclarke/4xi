@@ -96,7 +96,7 @@ func (R *RendererSys) Update(){
 		R.ECS.Event(NewWinEvent{
 			ID:    "menue_win",
 			Title: "menue",
-			Text: map[string]func(){
+			Text: map[interface{}]func(){
 				"save":nil,
 				"options":nil,
 				"quit":func(){Running=false},

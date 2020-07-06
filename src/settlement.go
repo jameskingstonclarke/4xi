@@ -110,7 +110,7 @@ func (S *SettlementSys) ListenClickEvent(event ClickEvent){
 					S.ECS.Event(NewWinEvent{
 						ID:    fmt.Sprintf("settlement: %f, %f", event.WorldPos.X, event.WorldPos.Y),
 						Title: fmt.Sprintf("settlement: %f, %f", event.WorldPos.X, event.WorldPos.Y),
-						Text: map[string]func(){
+						Text: map[interface{}]func(){
 							fmt.Sprintf("population %f", S.SettlementStatsComps[i].Population):nil,
 							fmt.Sprintf("production %f", S.SettlementStatsComps[i].Production):nil,
 						},

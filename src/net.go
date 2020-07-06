@@ -233,6 +233,8 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 								*oldComp.(*PosComp) = *newCompInstance.(*PosComp)
 							case "MovementComp":
 								*oldComp.(*MovementComp) = *newCompInstance.(*MovementComp)
+							case "StateComp":
+								*oldComp.(*StateComp) = *newCompInstance.(*StateComp)
 							}
 						}
 					}

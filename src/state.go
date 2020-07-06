@@ -27,6 +27,7 @@ type StateComp struct {
 // it keeps track of the turn etc
 type StateSys struct {
 	*SystemBase
+	SyncComps []*SyncComp
 	// TODO in theory this should only be a single StateComp
 	StateComps []*StateComp
 	// the id of the entity that represents us
@@ -48,14 +49,15 @@ func (ECS *ECS) AddState(state *State) uint32{
 		case *NetworkSys:
 			s.AddEntity(state.Entity, state.SyncComp)
 		case *StateSys:
-			s.AddEntity(state.Entity, state.StateComp)
+			s.AddEntity(state.Entity, state.SyncComp, state.StateComp)
 		}
 	}
 	return state.ID
 }
 
-func (S *StateSys) AddEntity(Entity *Entity, StateComp *StateComp){
+func (S *StateSys) AddEntity(Entity *Entity, SyncComp *SyncComp, StateComp *StateComp){
 	S.Entities = append(S.Entities, Entity)
+	S.SyncComps = append(S.SyncComps, SyncComp)
 	S.StateComps = append(S.StateComps, StateComp)
 	S.Size++
 }
@@ -74,18 +76,30 @@ func (S *StateSys) Update(){
 }
 func (S *StateSys) Remove(){}
 
+
 func (S *StateSys) ListenServerCommandEvent(event ServerCommandEvent){
 	// if we haven't initialised our state ID, we set it to the latest state added
 	if event.Side == CLIENT && event.Type == SERVER_CMD_SYNC{
+		CLog("turn: ", S.StateComps[0].Turn)
 		if S.OurStateID == 1<<31{
 			S.OurStateID = S.Entities[S.Size-1].ID
+			S.ECS.Event(NewWinEvent{
+				ID:    "game",
+				Title: "game",
+				Text: map[interface{}]func(){
+					"turn: ":nil,
+					&S.StateComps[0].Turn:nil,
+				},
+			})
 		}
 	}
+
 	if event.Side == CLIENT && event.Type == SERVER_CMD_NEXT_TURN{
+
 		S.ECS.Event(NewWinEvent{
 			ID:    "next_turn",
 			Title: "next_turn",
-			Text: map[string]func(){
+			Text: map[interface{}]func(){
 				"next turn!":nil,
 			},
 		})
@@ -97,7 +111,6 @@ func (S *StateSys) ListenClientCommandEvent(event ClientCommandEvent){
 	if event.Side == SERVER {
 		switch event.Type {
 		case CLIENT_CMD_NEXT_TURN:
-
 			SLog("client sent a next turn")
 			// TODO first check if the client has taken their turn already as this is spamable
 			var result map[string]interface{}
@@ -124,14 +137,13 @@ func (S *StateSys) ListenClientCommandEvent(event ClientCommandEvent){
 			SLog(turnBuffer, S.Size)
 			// if everyone has taken their turn, then we go to the next turn
 			if turnBuffer == S.Size {
-				// update everyone's turns
-				for _, client := range S.StateComps{
-					client.Turn++
+				// update everyone's turns and mark their state as dirty
+				for i:=0;i<S.Size;i++{
+					S.StateComps[i].Turn++
+					S.SyncComps[i].Dirty = true
 				}
-
-				SLog("sending next turn to client")
-				S.ECS.Event(ServerCommandEvent{Side: SERVER, Type: SERVER_CMD_NEXT_TURN})
 				S.ECS.Event(ServerCommandEvent{Side: SERVER, Type: SERVER_CMD_SYNC})
+				S.ECS.Event(ServerCommandEvent{Side: SERVER, Type: SERVER_CMD_NEXT_TURN})
 			}
 		}
 	}
