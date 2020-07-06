@@ -114,6 +114,7 @@ func (N *NetworkSys) Init(){
 		go N.PollClientCommands()
 	}
 }
+
 func (N *NetworkSys) Update(){}
 func (N *NetworkSys) Remove(){}
 func (N *NetworkSys) Close(){}
