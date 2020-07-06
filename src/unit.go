@@ -106,7 +106,6 @@ func (U *UnitSys) ListenClickEvent(event ClickEvent){
 		for i:=0;i<U.Size;i++{
 			// see if we clicked on a unit
 			if U.PosComps[i].Pos.Equals(event.WorldPos){
-				CLog("meme", U.SelectedUnit)
 				// select the unit
 				if U.SelectedUnit == 1<<31{
 					CLog("selected unit ", U.Entities[i].ID)

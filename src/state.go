@@ -61,28 +61,27 @@ func (S *StateSys) AddEntity(Entity *Entity, StateComp *StateComp){
 }
 
 func (S *StateSys) Init(){
+	S.OurStateID = 1<<31
 	S.ECS.RegisterEntity("state", reflect.TypeOf(&State{}), reflect.ValueOf(&State{}).Elem())
-	if S.ECS.HostMode == SERVER {
-		// at our state to the game
-		S.OurStateID = S.ECS.AddState(S.ECS.CreateState("james-host", true))
-	}
 }
 
 func (S *StateSys) Update(){
 	if S.ECS.HostMode & CLIENT != 0 && InputBuffer.KeyPressed == 'n'{
+		CLog("sent next turn!")
 		// player on client side sends a client command to the server indicating it wants the next turn
 		S.ECS.Event(ClientCommandEvent{Type: CLIENT_CMD_NEXT_TURN, Side: CLIENT, Data: fmt.Sprintf("{\"id\":%d}", S.OurStateID)})
 	}
 }
 func (S *StateSys) Remove(){}
 
-// testing to see if next turns work
 func (S *StateSys) ListenServerCommandEvent(event ServerCommandEvent){
-	if event.Side == SERVER && event.Type == SERVER_CMD_NEXT_TURN{
-
+	// if we haven't initialised our state ID, we set it to the latest state added
+	if event.Side == CLIENT && event.Type == SERVER_CMD_SYNC{
+		if S.OurStateID == 1<<31{
+			S.OurStateID = S.Entities[S.Size-1].ID
+		}
 	}
 	if event.Side == CLIENT && event.Type == SERVER_CMD_NEXT_TURN{
-		CLog("received next turn from server")
 		S.ECS.Event(NewWinEvent{
 			ID:    "next_turn",
 			Title: "next_turn",
@@ -92,7 +91,6 @@ func (S *StateSys) ListenServerCommandEvent(event ServerCommandEvent){
 		})
 	}
 }
-
 // TODO SERVER
 // server listens for commands
 func (S *StateSys) ListenClientCommandEvent(event ClientCommandEvent){
@@ -111,6 +109,7 @@ func (S *StateSys) ListenClientCommandEvent(event ClientCommandEvent){
 			// check if the client has taken their turn already
 			// if they haven't, then take their turn
 			for i:=0;i<S.Size;i++{
+				SLog("checking entity ",S.Entities[i].ID, " against client id ", clientID)
 				if S.Entities[i].ID == clientID{
 					if S.StateComps[i].TakenTurn != true{
 						S.StateComps[i].TakenTurn = true

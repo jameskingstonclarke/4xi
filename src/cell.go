@@ -40,7 +40,6 @@ func (ECS *ECS) CreateCell(pos Vec, cellType uint32, dirty bool) *Cell{
 func (ECS *ECS) AddCell(cell *Cell){
 	// if we are the client, we want to add a render component
 	if ECS.HostMode == CLIENT{
-		SLog("client adding cell, ", cell.Pos)
 		var yield rune
 		var style tcell.Style
 		switch cell.CellDatComp.Type{

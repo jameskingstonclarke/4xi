@@ -121,7 +121,10 @@ func (N *NetworkSys) Close(){}
 // the network code must be ran AFTER every other system has updated their state.
 // this allows the server to queue up the changes, and then send them across the network
 func (N *NetworkSys) Priority() int {
-	return 1
+	// TODO this is 0 for now, the reason being, the state needs to get the latest state ID
+	// after the server has synced
+	return 0
+	//return 1
 }
 
 
@@ -135,11 +138,14 @@ func (N *NetworkSys) PollClientConnections(){
 		}
 		N.ClientConnections = append(N.ClientConnections, client)
 		SLog("client connected from ", client.RemoteAddr())
+		// as a new client has connected, we need to add a state for the client in the ECS
 		N.ECS.AddState(N.ECS.CreateState("client_"+client.RemoteAddr().String(), true))
-		// we now need to set the entire ECS system to dirty
+		// we now need to set the entire ECS system to dirty so the new client
+		// can sync the entire server ECS
 		for _, sync := range N.SyncComps{
 			sync.Dirty = true
 		}
+		// now sync the new player
 		N.ECS.Event(ServerCommandEvent{Side: SERVER, Type: SERVER_CMD_SYNC})
 		SLog("synced new player!")
 	}
