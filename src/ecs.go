@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"reflect"
 	"strings"
-	"sync"
 )
 
 type ECS struct {
@@ -25,7 +24,10 @@ type ECS struct {
 	EntityComponentLookup map[uint32]uint32
 	// whether the ECS is a server or client
 	HostMode uint8
-	EventMut sync.Mutex
+
+	// this is used for the goroutines that poll client/server commands
+	// to dispatch events into the ECS in a thread-safe manner
+	EventChannel chan Event
 }
 
 func NewECS(mode uint8) *ECS{
@@ -35,6 +37,7 @@ func NewECS(mode uint8) *ECS{
 		EntityComponentLookup: make(map[uint32]uint32),
 		EntityNameTypeRegistry: make(map[string]reflect.Type),
 		EntityComponentTypeRegistry: make(map[string][]reflect.Type),
+		EventChannel: make(chan(Event)),
 	}
 }
 
@@ -149,6 +152,19 @@ func (ECS *ECS) Sys() []System{
 func (ECS *ECS) Update(){
 	for _, s := range ECS.Sys(){
 		s.Update()
+	}
+	// check if the event channel has a value, if so dispatch it, if not then move on
+	select {
+	case event, ok := <-ECS.EventChannel:
+		if ok {
+			CLog("event channel was read successfully!")
+			ECS.Event(event)
+		}else{
+			CLog("event channel was closed!")
+		}
+	// this default case is needed for the channel reading to be non-blocking
+	default:
+		break
 	}
 }
 

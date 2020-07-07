@@ -358,7 +358,10 @@ func (N *NetworkSys) PollServerCommands(){
 		CLog("received command from the server ", command.Type)
 		// indicate that the command is now client side
 		command.Side = CLIENT
-		N.ECS.Event(command)
+		//N.ECS.Event(command)
+
+		// pass the command into the event channel
+		N.ECS.EventChannel <- command
 	}
 }
 
@@ -386,7 +389,10 @@ func (N *NetworkSys) PollClientCommands(){
 					}
 					// indicate that the command is now server side
 					command.Side = SERVER
-					N.ECS.Event(command)
+					//N.ECS.Event(command)
+
+					// pass the command into the event channel
+					N.ECS.EventChannel <- command
 				}
 			}()
 		}
