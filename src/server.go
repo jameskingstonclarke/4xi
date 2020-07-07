@@ -1,5 +1,7 @@
 package src
 
+import "net"
+
 type Server struct {
 	ECS        *ECS
 }
@@ -7,7 +9,7 @@ type Server struct {
 func NewServer() *Server{
 	// create a client by registering all the relevant ECS systems
 	ecs := NewECS(SERVER)
-	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs)})
+	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs), ClientConnections: make(map[int]net.Conn)})
 	ecs.RegisterSystem(&StateSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&UnitSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&WorldSys{SystemBase: NewSysBase(ecs)})

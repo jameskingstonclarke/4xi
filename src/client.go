@@ -1,5 +1,6 @@
 package src
 import "C"
+import "net"
 
 type Client struct {
 	ECS *ECS
@@ -10,13 +11,12 @@ func NewClient(addr string) *Client{
 	Screen := &Screen{}
 	// create a client by registering all the relevant ECS systems
 	ecs := NewECS(CLIENT)
-	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs), ServerAddress: addr})
+	ecs.RegisterSystem(&NetworkSys{SystemBase: NewSysBase(ecs), ServerAddress: addr, ClientConnections: make(map[int]net.Conn)})
 	ecs.RegisterSystem(&StateSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&UnitSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&WorldSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&EmpireSys{SystemBase: NewSysBase(ecs)})
 	ecs.RegisterSystem(&SettlementSys{SystemBase: NewSysBase(ecs)})
-	
 	ecs.RegisterSystem(&RendererSys{SystemBase: NewSysBase(ecs), Screen: Screen})
 	ecs.RegisterSystem(&UISys{SystemBase: NewSysBase(ecs), UIManager: NewUIManager(Screen)})
 	return &Client{

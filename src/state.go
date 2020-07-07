@@ -78,24 +78,22 @@ func (S *StateSys) Remove(){}
 
 
 func (S *StateSys) ListenServerCommandEvent(event ServerCommandEvent){
-	// if we haven't initialised our state ID, we set it to the latest state added
-	if event.Side == CLIENT && event.Type == SERVER_CMD_SYNC{
-		CLog("turn: ", S.StateComps[0].Turn)
-		if S.OurStateID == 1<<31{
-			S.OurStateID = S.Entities[S.Size-1].ID
-			S.ECS.Event(NewWinEvent{
-				ID:    "game",
-				Title: "game",
-				Text: map[interface{}]func(){
-					"turn: ":nil,
-					&S.StateComps[0].Turn:nil,
-				},
-			})
-		}
+	// check if we are being initialised
+	if event.Side == CLIENT && event.Type == SERVER_CMD_CLIENT_INIT{
+		CLog("client init")
+		// set our state ID to the latest state
+		S.OurStateID = S.Entities[S.Size-1].ID
+		S.ECS.Event(NewWinEvent{
+			ID:    "game",
+			Title: "game",
+			Text: map[interface{}]func(){
+				"turn: ":nil,
+				&S.StateComps[0].Turn:nil,
+			},
+		})
 	}
 
 	if event.Side == CLIENT && event.Type == SERVER_CMD_NEXT_TURN{
-
 		S.ECS.Event(NewWinEvent{
 			ID:    "next_turn",
 			Title: "next_turn",

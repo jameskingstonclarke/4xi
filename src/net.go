@@ -16,10 +16,16 @@ const (
 	// used by the client to tell the server it is moving a unit
 	CLIENT_CMD_MOVE_UNIT = 0x2
 
+	// used to broadcast to all clients
+	BROADCAST = 0x0
+	// directed to one client
+	DIRECT    = 0x1
 	// used when the server tells the clients it is the next turn
-	SERVER_CMD_NEXT_TURN = 0x98
+	SERVER_CMD_NEXT_TURN   = 0x98
 	// used by the server to indicate clients should sync
-	SERVER_CMD_SYNC      = 0x99
+	SERVER_CMD_SYNC        = 0x99
+	// used by the server to tell a client they are being initialised
+	SERVER_CMD_CLIENT_INIT = 0xA0
 )
 
 type SyncEntityContainer struct {
@@ -44,7 +50,8 @@ type NetworkSys struct {
 	ServerConnection  net.Conn
 	// connections to clients (used if we are a server)
 	Listener          net.Listener
-	ClientConnections []net.Conn
+	ClientConnections map[int]net.Conn
+	NumConnections    int
 	// address of the server to connect to
 	ServerAddress	  string
 }
@@ -66,6 +73,8 @@ type ServerCommandEvent struct{
 	Side uint8
 	Type uint32
 	Data []byte
+	TargetMode uint8
+	Target     int
 }
 
 // used by clients to send commands to the server
@@ -137,7 +146,9 @@ func (N *NetworkSys) PollClientConnections(){
 		if err != nil{
 			SLogErr(err)
 		}
-		N.ClientConnections = append(N.ClientConnections, client)
+		clientID := N.NumConnections
+		N.ClientConnections[clientID] = client
+		N.NumConnections++
 		SLog("client connected from ", client.RemoteAddr())
 		// as a new client has connected, we need to add a state for the client in the ECS
 		N.ECS.AddState(N.ECS.CreateState("client_"+client.RemoteAddr().String(), true))
@@ -146,31 +157,59 @@ func (N *NetworkSys) PollClientConnections(){
 		for _, sync := range N.SyncComps{
 			sync.Dirty = true
 		}
-		// now sync the new player
-		N.ECS.Event(ServerCommandEvent{Side: SERVER, Type: SERVER_CMD_SYNC})
+		// now sync the new player with every client
+		N.ECS.Event(ServerCommandEvent{Side: SERVER, Type: SERVER_CMD_SYNC, TargetMode: BROADCAST})
+		// directly tell the client they are being initialised
+		N.ECS.Event(ServerCommandEvent{
+			Side: SERVER,
+			Type: SERVER_CMD_CLIENT_INIT,
+			TargetMode: DIRECT,
+			Target: clientID,
+		})
 		SLog("synced new player!")
 	}
 }
 
-func Swap(old *Component, new Component){
-	*old = new
+
+func (N* NetworkSys) Broadcast(command ServerCommandEvent){
+	// send a next turn command
+	for id, _ := range N.ClientConnections {
+		N.Direct(id, command)
+	}
 }
 
+func (N* NetworkSys) Direct(clientID int, command ServerCommandEvent){
+	client, ok := N.ClientConnections[clientID]
+	if !ok{
+		SLog("cannot find client: ", clientID)
+	}
+	encoder := json.NewEncoder(client)
+	command.Side = CLIENT
+	err := encoder.Encode(command)
+	if err != nil {
+		SLog(err)
+	}
+}
 
+func (N *NetworkSys) Dispatch(command ServerCommandEvent){
+	if command.TargetMode == BROADCAST {
+		N.Broadcast(command)
+	}else if command.TargetMode == DIRECT{
+		N.Direct(command.Target, command)
+	}
+}
 // TODO CLIENT & SERVER
+// TODO make this code better jesus
 // listen for when the server has done processing and is ready to sync
-func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
-	// TODO make this code better jesus
+func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){// check if we have received a sync from the server
+	if command.Side == CLIENT && command.Type == SERVER_CMD_CLIENT_INIT {
+		CLog("server sent us an init!")
+	}
+	if command.Side == SERVER && command.Type == SERVER_CMD_CLIENT_INIT{
+		N.Dispatch(command)
+	}
 	if command.Side == SERVER && command.Type == SERVER_CMD_NEXT_TURN{
-		// send a next turn command
-		for _, client := range N.ClientConnections {
-			encoder := json.NewEncoder(client)
-			command.Side = CLIENT
-			err := encoder.Encode(command)
-			if err != nil{
-				SLog(err)
-			}
-		}
+		N.Dispatch(command)
 	}
 	if command.Side == SERVER && command.Type == SERVER_CMD_SYNC {
 		SLog("server attempting to sync...")
@@ -200,14 +239,7 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 			Side: CLIENT,
 			Data: []byte(entities), // TODO this data should be the array of the dirty entities
 		}
-		// send out a sync to all clients
-		for _, client := range N.ClientConnections {
-			encoder := json.NewEncoder(client)
-			err := encoder.Encode(newCommand)
-			if err != nil{
-				SLog(err)
-			}
-		}
+		N.Dispatch(newCommand)
 		SLog("sent sync command to clients ")
 	}
 	// check if we have received a sync from the server
@@ -325,9 +357,9 @@ func (N *NetworkSys) PollServerCommands(){
 		if err != nil{
 			CLog(err)
 		}
-		//CLog("received command from the server ", command)
 		// indicate that the command is now client side
 		command.Side = CLIENT
+		CLog("server sent us a command: ", command.TargetMode)
 		N.ECS.Event(command)
 	}
 }
@@ -337,9 +369,11 @@ func (N *NetworkSys) PollServerCommands(){
 func (N *NetworkSys) PollClientCommands(){
 	nextClient := 0
 	for Running{
-		// this allows us to dispatch a new command listener for the next incoming client
-		if nextClient != len(N.ClientConnections){
-			client := N.ClientConnections[nextClient]
+		if nextClient != N.NumConnections {
+			client, ok := N.ClientConnections[nextClient]
+			if !ok{
+				SLog("cannot find client with ID ", nextClient)
+			}
 			nextClient++
 			go func() {
 				for Running {
@@ -351,7 +385,6 @@ func (N *NetworkSys) PollClientCommands(){
 					if err != nil{
 						CLog(err)
 					}
-					//SLog("received command from client ", command)
 					// indicate that the command is now server side
 					command.Side = SERVER
 					N.ECS.Event(command)
