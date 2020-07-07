@@ -201,10 +201,7 @@ func (N *NetworkSys) Dispatch(command ServerCommandEvent){
 // TODO CLIENT & SERVER
 // TODO make this code better jesus
 // listen for when the server has done processing and is ready to sync
-func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){// check if we have received a sync from the server
-	if command.Side == CLIENT && command.Type == SERVER_CMD_CLIENT_INIT {
-		CLog("server sent us an init!")
-	}
+func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){
 	if command.Side == SERVER && command.Type == SERVER_CMD_CLIENT_INIT{
 		N.Dispatch(command)
 	}
@@ -336,6 +333,7 @@ func (N *NetworkSys) ListenServerCommandEvent(command ServerCommandEvent){// che
 func (N *NetworkSys) ListenClientCommandEvent(command ClientCommandEvent){
 	if command.Side == CLIENT {
 		encoder := json.NewEncoder(N.ServerConnection)
+		// this already appends a '\n' character, so we don't need to manually add it
 		err := encoder.Encode(command)
 		if err != nil {
 			CLogErr(err)
@@ -348,27 +346,18 @@ func (N *NetworkSys) ListenClientCommandEvent(command ClientCommandEvent){
 // listen for sync messages from the server connection, once we receive a sync over the network
 // dispatch the sync locally
 func (N *NetworkSys) PollServerCommands(){
+	decoder := json.NewDecoder(N.ServerConnection)
 	for {
-
-		// there is an issue with this code. when sending 2 commands one after the other, this
-		// handler will receive the first. it will then dispatch the command appropriately. the issue
-		// is that when the command is being handled, another command will be received. however,
-		// this go routine will drop the packets as we cannot receive it.
-
-		// to test this theory, we debug every time a command is received.
-
 		// create a decoder to listen for server commands
-		decoder := json.NewDecoder(N.ServerConnection)
 		var command ServerCommandEvent
 		// decode the response
 		err := decoder.Decode(&command)
 		if err != nil{
 			CLog(err)
 		}
-		CLog("received command from the server ", command)
+		CLog("received command from the server ", command.Type)
 		// indicate that the command is now client side
 		command.Side = CLIENT
-		CLog("server sent us a command: ", command.TargetMode)
 		N.ECS.Event(command)
 	}
 }
@@ -385,9 +374,10 @@ func (N *NetworkSys) PollClientCommands(){
 			}
 			nextClient++
 			go func() {
+				// create a connection and a decoder for each client
+				decoder := json.NewDecoder(client)
 				for Running {
 					// create a decoder to receive the command
-					decoder := json.NewDecoder(client)
 					var command ClientCommandEvent
 					// decode the response
 					err := decoder.Decode(&command)
