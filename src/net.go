@@ -315,6 +315,14 @@ func (N *NetworkSys) ListenClientCommandEvent(command ClientCommandEvent){
 // dispatch the sync locally
 func (N *NetworkSys) PollServerCommands(){
 	for {
+
+		// there is an issue with this code. when sending 2 commands one after the other, this
+		// handler will receive the first. it will then dispatch the command appropriately. the issue
+		// is that when the command is being handled, another command will be received. however,
+		// this go routine will drop the packets as we cannot receive it.
+
+		// to test this theory, we debug every time a command is received.
+
 		// create a decoder to listen for server commands
 		decoder := json.NewDecoder(N.ServerConnection)
 		var command ServerCommandEvent
@@ -323,7 +331,7 @@ func (N *NetworkSys) PollServerCommands(){
 		if err != nil{
 			CLog(err)
 		}
-		//CLog("received command from the server ", command)
+		CLog("received command from the server ", command)
 		// indicate that the command is now client side
 		command.Side = CLIENT
 		N.ECS.Event(command)
