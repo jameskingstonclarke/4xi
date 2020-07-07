@@ -1,7 +1,12 @@
 package src
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
+	"errors"
+	"io"
 	"net"
 	"reflect"
 )
@@ -181,14 +186,43 @@ func (N* NetworkSys) Broadcast(command ServerCommandEvent){
 func (N* NetworkSys) Direct(clientID int, command ServerCommandEvent){
 	client, ok := N.ClientConnections[clientID]
 	if !ok{
-		SLog("cannot find client: ", clientID)
+		SLogErr(errors.New("cannot find client"))
 	}
-	encoder := json.NewEncoder(client)
 	command.Side = CLIENT
-	err := encoder.Encode(command)
-	if err != nil {
-		SLog(err)
+
+	// encode the data
+	encoded, err := json.Marshal(command)
+	if err != nil{
+		SLogErr(err)
 	}
+	// compress the data
+	var compressed []byte
+	compressed = Compress(encoded)
+
+	// calculate the length of the compressed data and convert it to a []byte
+	l := bytes.Buffer{}
+	binary.Write(&l, binary.LittleEndian, int32(len(compressed)))
+
+	// prepend the length to the compressed data
+	data := append(l.Bytes(), compressed...)
+
+	// write the compressed data to the connection
+	_, err = client.Write(data)
+	if err != nil {
+		SLogErr(err)
+	}
+
+
+	//client, ok := N.ClientConnections[clientID]
+	//if !ok{
+	//	SLog("cannot find client: ", clientID)
+	//}
+	//command.Side = CLIENT
+	//encoder := json.NewEncoder(client)
+	//err := encoder.Encode(command)
+	//if err != nil {
+	//	SLog(err)
+	//}
 }
 
 func (N *NetworkSys) Dispatch(command ServerCommandEvent){
@@ -346,22 +380,57 @@ func (N *NetworkSys) ListenClientCommandEvent(command ClientCommandEvent){
 // listen for sync messages from the server connection, once we receive a sync over the network
 // dispatch the sync locally
 func (N *NetworkSys) PollServerCommands(){
-	decoder := json.NewDecoder(N.ServerConnection)
+	reader := bufio.NewReader(N.ServerConnection)
+	//decoder := json.NewDecoder(N.ServerConnection)
 	for {
-		// create a decoder to listen for server commands
-		var command ServerCommandEvent
-		// decode the response
-		err := decoder.Decode(&command)
+		// first read the response length
+		// the message length is 4 bytes
+		messageLen := make([]byte, 4)
+		_, err := io.ReadFull(reader, messageLen)
+
+
+		// read the message len into the l variable
+		var l int32
+		binary.Read(bytes.NewBuffer(messageLen), binary.LittleEndian, &l)
+
+		// now actually allocate memory for the message & read it
+		message := make([]byte, l)
+		_, err = io.ReadFull(reader, message)
 		if err != nil{
-			CLog(err)
+			CLogErr(err)
 		}
-		CLog("received command from the server ", command.Type)
+
+		// uncompress the data
+		var uncompressed []byte
+		uncompressed = Uncompress(message)
+
+		// finally unmarshal the data
+		var command ServerCommandEvent
+		json.Unmarshal(uncompressed, &command)
+
+		CLog("received command from the server ", command)
 		// indicate that the command is now client side
 		command.Side = CLIENT
 		//N.ECS.Event(command)
 
 		// pass the command into the event channel
 		N.ECS.EventChannel <- command
+
+
+		//// create a decoder to listen for server commands
+		//var command ServerCommandEvent
+		//// decode the response
+		//err := decoder.Decode(&command)
+		//if err != nil{
+		//	CLog(err)
+		//}
+		//CLog("received command from the server ", command.Type)
+		//// indicate that the command is now client side
+		//command.Side = CLIENT
+		////N.ECS.Event(command)
+		//
+		//// pass the command into the event channel
+		//N.ECS.EventChannel <- command
 	}
 }
 

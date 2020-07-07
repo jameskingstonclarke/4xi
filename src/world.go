@@ -24,8 +24,8 @@ func (W *WorldSys) AddEntity(Entity *Entity, CellDatComp *CellDatComp, PosComp *
 func (W *WorldSys) Init(){
 	W.ECS.RegisterEntity("cell", reflect.TypeOf(&Cell{}), reflect.ValueOf(&Cell{}).Elem())
 	if W.ECS.HostMode == SERVER {
-		W.Width = 30
-		W.Height = 30
+		W.Width = 50
+		W.Height = 50
 		// generate the cells
 		p := perlin.NewPerlin(2, 5, 5, 1)
 		for x := 0; x < W.Width; x++ {
