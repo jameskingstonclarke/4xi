@@ -3,7 +3,9 @@ package src
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gdamore/tcell"
+	"reflect"
 )
 
 type UI interface {
@@ -102,13 +104,19 @@ func (UIManager *UIManager) SetWinText(winID, id, text string){
 	}
 }
 
-func (Window *Window) NewText(id, text string, style tcell.Style, callback Callback){
-	Window.Text = append(Window.Text, &Text{
+// the reason the text is an interface, is becuase it can be any value and thus be updated on the fly
+func (Window *Window) NewText(id string, text interface{}, style tcell.Style, callback Callback){
+	t:= &Text{
 		UITemplate: UITemplate{UIManager: Window.UIManager, ID: id, Enabled: Window.Enabled, View: Window.View, Style: style},
 		T:          text,
+		Ptr: 		false,
 		Pos:        Vec{},
 		Callback:   callback,
-	})
+	}
+	if reflect.ValueOf(text).Type().Kind() == reflect.Ptr{
+		t.Ptr = true
+	}
+	Window.Text = append(Window.Text, t)
 	Window.UpdateTextPos()
 }
 
@@ -149,7 +157,10 @@ type Callback func()
 
 type Text struct {
 	UITemplate
-	T   	 string
+	// the text is an interface so it can be updated on the fly
+	T   	 interface{}
+	// if T is a pointer to a value
+	Ptr      bool
 	Pos 	 Vec
 	Callback Callback
 }
@@ -160,8 +171,12 @@ func (Text *Text) Draw(){
 		if Text.View == WORLD_VIEW{
 			pos = Text.UIManager.Screen.WorldToScreen(pos)
 		}
+		val := fmt.Sprintf("%v",Text.T)
+		if Text.Ptr{
+			val = fmt.Sprintf("%v",reflect.ValueOf(Text.T).Elem())
+		}
 		if InputBuffer.MousePressed == '1' {
-			if InputBuffer.MousePos.X >= pos.X && int(InputBuffer.MousePos.X) <= int(pos.X)+len(Text.T) {
+			if InputBuffer.MousePos.X >= pos.X && int(InputBuffer.MousePos.X) <= int(pos.X)+len(val) {
 				if InputBuffer.MousePos.Y == pos.Y {
 					if Text.Callback != nil{
 						Text.Callback()
@@ -169,7 +184,7 @@ func (Text *Text) Draw(){
 				}
 			}
 		}
-		Text.UIManager.Screen.Text(Text.T, Text.Pos, Text.Style, Text.View,UI_DEPTH)
+		Text.UIManager.Screen.Text(val, Text.Pos, Text.Style, Text.View,UI_DEPTH)
 	}
 }
 
@@ -212,8 +227,14 @@ func (Window *Window) UpdateSize(){
 		width = len(Window.Title)
 	}
 	for _, t := range Window.Text{
-		if len(t.T) > width{
-			width = len(t.T)
+
+		val := fmt.Sprintf("%v",t.T)
+		if t.Ptr{
+			val = fmt.Sprintf("%v",reflect.ValueOf(t.T).Elem())
+		}
+
+		if len(val) > width{
+			width = len(val)
 		}
 	}
 	height = len(Window.Text)
@@ -233,7 +254,7 @@ func (Window *Window) Draw(){
 
 		// TODO clean up this window dragging code as it is awful
 		if !Window.Dragging && InputBuffer.MouseHeld == '1' && (InputBuffer.MousePos.X >= Window.Pos.X && InputBuffer.MousePos.X <= Window.Pos.X+Window.Size.X &&
-			InputBuffer.MousePos.Y == Window.Pos.Y) {
+			(InputBuffer.MousePos.Y == Window.Pos.Y || InputBuffer.MousePos.Y == Window.Pos.Y+Window.Size.Y)) {
 			Window.DragOffset = InputBuffer.MousePos.Sub(Window.Pos)
 			Window.Dragging = true
 		}
